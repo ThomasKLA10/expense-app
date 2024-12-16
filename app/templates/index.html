@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Welcome to Expense App</h1>
-<p>Upload and manage your receipts here.</p>
+<div class="text-center">
+    <h1 class="mb-4">Welcome to the BB Expense App</h1>
+    <p class="mb-5">Select your office location to manage expenses</p>
+    
+    <div class="d-grid gap-3 col-md-6 mx-auto">
+        <a href="{{ url_for('main.office', location='bonn') }}" class="btn btn-primary btn-lg">
+            Bonn Office
+        </a>
+        <!-- Future offices will be added here -->
+        <!-- <a href="{{ url_for('main.office', location='berlin') }}" class="btn btn-primary btn-lg">Berlin Office</a> -->
+        <!-- <a href="{{ url_for('main.office', location='munich') }}" class="btn btn-primary btn-lg">Munich Office</a> -->
+    </div>
+</div>
 {% endblock %}

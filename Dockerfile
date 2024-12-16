@@ -11,7 +11,8 @@ COPY . .
 
 ENV FLASK_APP=run.py
 ENV FLASK_ENV=development
+ENV FLASK_DEBUG=1
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "./wait-for-db.sh db \"flask run --host=0.0.0.0\""]
+CMD ["sh", "-c", "./wait-for-db.sh db \"flask run --host=0.0.0.0 --debug\""]

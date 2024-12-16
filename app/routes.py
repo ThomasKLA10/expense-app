@@ -11,6 +11,10 @@ main = Blueprint('main', __name__)
 def index():
     return render_template('index.html')
 
+@main.route('/office/<location>')
+def office(location):
+    return render_template('office.html', location=location)
+
 @main.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':

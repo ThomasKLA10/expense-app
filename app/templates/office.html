@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ location.title() }} Office Dashboard</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{{ url_for('main.upload') }}" class="btn btn-primary">Upload Receipt</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <!-- We'll add receipt list and other features here later -->
+            <p>Recent receipts will be displayed here</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
