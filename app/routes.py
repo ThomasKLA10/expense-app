@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
-from flask_login import login_required
+# Remove login_required for now
 from werkzeug.utils import secure_filename
 import os
 from . import db
