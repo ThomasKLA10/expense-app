@@ -29,6 +29,17 @@ def upload():
             currency = request.form['currency']
             category = request.form['category']
             
+            # Get travel-specific data only if category is travel
+            travel_data = {}
+            if category == 'travel':
+                travel_data = {
+                    'purpose': request.form.get('purpose'),
+                    'travel_from': request.form.get('travel_from'),
+                    'travel_to': request.form.get('travel_to'),
+                    'departure_date': datetime.strptime(request.form.get('departure_date'), '%Y-%m-%d').date() if request.form.get('departure_date') else None,
+                    'return_date': datetime.strptime(request.form.get('return_date'), '%Y-%m-%d').date() if request.form.get('return_date') else None
+                }
+            
             # Handle file upload
             if 'receipt' not in request.files:
                 flash('No file uploaded', 'error')
@@ -53,7 +64,8 @@ def upload():
                     currency=currency,
                     category=category,
                     file_path=filename,
-                    office=request.args.get('office', 'bonn')  # Default to Bonn for now
+                    office=request.args.get('office', 'bonn'),
+                    **travel_data  # Add travel data if present
                 )
                 
                 db.session.add(receipt)
