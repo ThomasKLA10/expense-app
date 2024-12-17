@@ -1,0 +1,9 @@
+/* General styles and navbar */
+.container {
+    max-width: 1200px;
+}
+
+/* Index page styles */
+.btn-lg {
+    padding: 1rem 2rem;
+}

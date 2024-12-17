@@ -1,0 +1,33 @@
+/* Form elements styling */
+#amount {
+    width: 120px;
+}
+
+#currency {
+    width: 123px;
+    padding-left: 5px;
+}
+
+.btn-group {
+    max-width: 400px;
+}
+
+.btn-check + .btn-outline-primary {
+    flex: 1;
+}
+
+.col-auto {
+    display: flex;
+    flex-direction: column;
+    margin-right: 10px;
+}
+
+.currency-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fi {
+    margin-right: 8px;
+}
