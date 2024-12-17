@@ -47,7 +47,7 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                <a href="{{ url_for('main.view_receipt', receipt_id=receipt.id) }}" class="btn btn-sm btn-outline-primary">View</a>
                             </td>
                         </tr>
                         {% else %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Receipt Details</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{{ url_for('main.office', location=receipt.office) }}" class="btn btn-outline-primary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Receipt Information</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Date:</th>
+                            <td>{{ receipt.date_submitted.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Category:</th>
+                            <td>{{ receipt.category }}</td>
+                        </tr>
+                        <tr>
+                            <th>Amount:</th>
+                            <td>{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="badge bg-{{ 'warning' if receipt.status == 'pending' else 'success' if receipt.status == 'approved' else 'danger' }}">
+                                    {{ receipt.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Office:</th>
+                            <td>{{ receipt.office.title() }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Receipt Image</h5>
+                    {% if receipt.file_path.lower().endswith(('.png', '.jpg', '.jpeg')) %}
+                        <img src="{{ url_for('static', filename='uploads/' + receipt.file_path) }}" 
+                             class="img-fluid" 
+                             alt="Receipt">
+                    {% else %}
+                        <div class="text-center">
+                            <a href="{{ url_for('static', filename='uploads/' + receipt.file_path) }}" 
+                               class="btn btn-primary" 
+                               target="_blank">
+                                View PDF
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

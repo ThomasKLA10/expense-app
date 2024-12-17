@@ -70,3 +70,8 @@ def upload():
             return redirect(request.url)
             
     return render_template('upload.html')
+
+@main.route('/receipt/<int:receipt_id>')
+def view_receipt(receipt_id):
+    receipt = Receipt.query.get_or_404(receipt_id)
+    return render_template('receipt.html', receipt=receipt)
