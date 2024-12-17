@@ -6,3 +6,5 @@ env/
 venv/
 app/uploads/*
 .DS_Store
+app/uploads/*
+!app/uploads/.gitkeep
