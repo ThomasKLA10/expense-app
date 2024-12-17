@@ -1,0 +1,46 @@
+/* General styles */
+body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+}
+
+/* Welcome page styles */
+.welcome-container {
+    min-height: 80vh;
+}
+
+.welcome-title {
+    color: #333;
+    letter-spacing: -0.5px;
+}
+
+.welcome-text {
+    color: #666;
+    font-size: 1.25rem;
+}
+
+.google-signin-btn {
+    border-radius: 30px;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    background-color: #4285f4;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1rem 2.5rem;
+}
+
+.google-signin-btn:hover {
+    background-color: #357ABD;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .welcome-title {
+        font-size: 2rem;
+    }
+    
+    .welcome-text {
+        font-size: 1.1rem;
+    }
+} 

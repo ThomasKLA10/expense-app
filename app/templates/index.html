@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="text-center">
-    <h1 class="mb-4">Welcome to the BB Expense App</h1>
-    <p class="mb-5">Select your office location to manage expenses</p>
-    
-    <div class="d-grid gap-3 col-md-6 mx-auto">
-        <a href="{{ url_for('main.office', location='bonn') }}" class="btn btn-primary btn-lg">
-            Bonn Office
+<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="text-center">
+        <h1 class="display-4 mb-4 fw-bold" style="color: #333;">Welcome to the BB Expense App</h1>
+        <p class="lead mb-5" style="color: #666; font-size: 1.25rem;">
+            Please sign in with your Bakken & Bæck email to continue.
+        </p>
+        {% if not current_user.is_authenticated %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-5 py-3" 
+           style="border-radius: 30px; font-size: 1.1rem; transition: all 0.3s ease;">
+            Sign in with Google
         </a>
-        <!-- Future offices will be added here -->
-        <!-- <a href="{{ url_for('main.office', location='berlin') }}" class="btn btn-primary btn-lg">Berlin Office</a> -->
-        <!-- <a href="{{ url_for('main.office', location='munich') }}" class="btn btn-primary btn-lg">Munich Office</a> -->
+        {% endif %}
     </div>
 </div>
 {% endblock %}

@@ -1,40 +1,27 @@
 import os
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from flask_migrate import Migrate
+from .extensions import db, migrate, login_manager
 from .config import Config
-
-db = SQLAlchemy()
-migrate = Migrate()
-login_manager = LoginManager()
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Database configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@db:5432/expense_app'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    # Only allow HTTP in development
+    if app.debug:
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
     
-    # File upload configuration
-    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-    
-    # Secret key for flash messages
-    app.config['SECRET_KEY'] = 'your-secret-key'  # Change this in production
-    
+    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
-
-    # Create uploads directory if it doesn't exist
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
+    
     # Register blueprints
     from .routes import main
+    from .auth import auth as auth_blueprint
     app.register_blueprint(main)
+    app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
     # Create database tables
     with app.app_context():

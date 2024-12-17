@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from . import db
 from .models import Receipt
+from flask_login import login_required, current_user
 
 main = Blueprint('main', __name__)
 
@@ -13,14 +14,29 @@ def allowed_file(filename):
 
 @main.route('/')
 def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
     return render_template('index.html')
 
+@main.route('/dashboard')
+@login_required
+def dashboard():
+    receipts = Receipt.query.filter_by(user_id=current_user.id)\
+                          .order_by(Receipt.date_submitted.desc())\
+                          .all()
+    return render_template('dashboard.html', receipts=receipts)
+
 @main.route('/office/<location>')
+@login_required
 def office(location):
-    receipts = Receipt.query.filter_by(office=location).order_by(Receipt.date_submitted.desc()).all()
-    return render_template('office.html', location=location, receipts=receipts)
+    receipts = Receipt.query.filter_by(
+        office=location,
+        user_id=current_user.id
+    ).order_by(Receipt.date_submitted.desc()).all()
+    return render_template('office.html', receipts=receipts, location=location)
 
 @main.route('/upload', methods=['GET', 'POST'])
+@login_required
 def upload():
     if request.method == 'POST':
         try:
@@ -65,7 +81,7 @@ def upload():
                     category=category,
                     file_path=filename,
                     office=request.args.get('office', 'bonn'),
-                    **travel_data  # Add travel data if present
+                    user_id=current_user.id  # Add user_id to receipt
                 )
                 
                 db.session.add(receipt)
