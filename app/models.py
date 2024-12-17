@@ -7,6 +7,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 class User(UserMixin, db.Model):
+    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(120))
@@ -14,6 +15,7 @@ class User(UserMixin, db.Model):
     receipts = db.relationship('Receipt', backref='user', lazy=True)
 
 class Receipt(db.Model):
+    __tablename__ = 'receipt'
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
     currency = db.Column(db.String(3), nullable=False)
@@ -22,3 +24,4 @@ class Receipt(db.Model):
     date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
     office = db.Column(db.String(50), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
