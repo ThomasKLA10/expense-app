@@ -17,7 +17,8 @@ def index():
 
 @main.route('/office/<location>')
 def office(location):
-    return render_template('office.html', location=location)
+    receipts = Receipt.query.filter_by(office=location).order_by(Receipt.date_submitted.desc()).all()
+    return render_template('office.html', location=location, receipts=receipts)
 
 @main.route('/upload', methods=['GET', 'POST'])
 def upload():
