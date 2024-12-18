@@ -1,0 +1,53 @@
+.receipt-preview-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.receipt-zoom-container {
+    position: relative;
+    max-width: 500px;
+}
+
+.receipt-image {
+    max-width: 100%;
+    height: auto;
+    cursor: crosshair;
+}
+
+.magnifier-panel {
+    position: sticky;
+    top: 20px;
+    width: 300px;
+}
+
+.magnifier-view {
+    width: 300px;
+    height: 300px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    display: none;
+    background-repeat: no-repeat;
+}
+
+.magnifier-view.active {
+    display: block;
+}
+
+.magnifier-view.frozen {
+    border-color: #007bff;
+}
+
+.pdf-preview-box {
+    border: 2px dashed #dee2e6;
+    padding: 2rem;
+    margin: 1rem;
+    border-radius: 0.5rem;
+}
+
+.pdf-preview-box i {
+    font-size: 4rem;
+    color: #dc3545;
+} 

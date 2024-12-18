@@ -57,12 +57,10 @@
                 <!-- Image preview -->
                 <div id="image-preview" class="text-center d-none">
                     <div class="receipt-preview-layout">
-                        <!-- Static magnifier panel -->
                         <div class="magnifier-panel">
                             <div class="magnifier-view"></div>
                             <p class="text-muted small mt-2">Hover over the receipt to zoom</p>
                         </div>
-                        <!-- Main receipt image -->
                         <div class="receipt-zoom-container">
                             <img src="" alt="Receipt preview" class="receipt-image">
                         </div>
@@ -133,35 +131,5 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const travelFields = document.getElementById('travel-fields');
-    const categoryInputs = document.querySelectorAll('input[name="category"]');
-    const fileInput = document.getElementById('receipt');
-    const fileInfo = document.getElementById('file-info');
-    const fileName = document.getElementById('file-name');
-
-    function toggleTravelFields() {
-        const selectedCategory = document.querySelector('input[name="category"]:checked').value;
-        travelFields.style.display = selectedCategory === 'travel' ? 'block' : 'none';
-    }
-
-    categoryInputs.forEach(input => {
-        input.addEventListener('change', toggleTravelFields);
-    });
-
-    // Show selected filename
-    fileInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            fileName.textContent = this.files[0].name;
-            fileInfo.classList.remove('d-none');
-        } else {
-            fileInfo.classList.add('d-none');
-        }
-    });
-
-    // Initial state
-    toggleTravelFields();
-});
-</script>
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
 {% endblock %}
