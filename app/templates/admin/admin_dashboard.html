@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Admin Dashboard</h2>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>User</th>
+                    <th>Amount</th>
+                    <th>Category</th>
+                    <th>Office</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for receipt in receipts %}
+                <tr>
+                    <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ receipt.user.name }}</td>
+                    <td>{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</td>
+                    <td>{{ receipt.category }}</td>
+                    <td>{{ receipt.office }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if receipt.status == 'approved' 
+                                            else 'warning' if receipt.status == 'pending' 
+                                            else 'danger' }}">
+                            {{ receipt.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('admin_receipt', receipt_id=receipt.id) }}" 
+                           class="btn btn-sm btn-primary">Review</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

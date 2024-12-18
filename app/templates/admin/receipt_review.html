@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Review Receipt</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Receipt Details</h5>
+                    <dl class="row">
+                        <dt class="col-sm-4">User</dt>
+                        <dd class="col-sm-8">{{ receipt.user.name }}</dd>
+                        
+                        <dt class="col-sm-4">Date</dt>
+                        <dd class="col-sm-8">{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</dd>
+                        
+                        <dt class="col-sm-4">Amount</dt>
+                        <dd class="col-sm-8">{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</dd>
+                        
+                        <dt class="col-sm-4">Category</dt>
+                        <dd class="col-sm-8">{{ receipt.category }}</dd>
+                        
+                        <dt class="col-sm-4">Office</dt>
+                        <dd class="col-sm-8">{{ receipt.office }}</dd>
+                        
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-{{ 'success' if receipt.status == 'approved' 
+                                                else 'warning' if receipt.status == 'pending' 
+                                                else 'danger' }}">
+                                {{ receipt.status }}
+                            </span>
+                        </dd>
+                    </dl>
+
+                    {% if receipt.status == 'pending' %}
+                    <form method="POST" class="mt-3">
+                        <div class="d-grid gap-2">
+                            <button type="submit" name="action" value="approve" 
+                                    class="btn btn-success">Approve</button>
+                            <button type="submit" name="action" value="reject" 
+                                    class="btn btn-danger">Reject</button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Receipt Image</h5>
+                    <div class="receipt-preview-layout">
+                        <div class="magnifier-panel">
+                            <div class="magnifier-view"></div>
+                        </div>
+                        <div class="receipt-zoom-container">
+                            <img src="{{ url_for('uploaded_file', filename=receipt.file_path) }}" 
+                                 alt="Receipt" class="receipt-image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/magnifier.js') }}"></script>
+{% endblock %}

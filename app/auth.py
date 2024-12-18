@@ -13,11 +13,11 @@ def record_oauth(state):
 @auth.route('/login')
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('index'))
     
     if oauth is None:
         flash('Authentication service not available.', 'error')
-        return redirect(url_for('main.index'))
+        return redirect(url_for('index'))
     
     return redirect(oauth.get_login_url())
 
@@ -25,24 +25,24 @@ def login():
 def callback():
     try:
         if current_user.is_authenticated:
-            return redirect(url_for('main.index'))
+            return redirect(url_for('index'))
             
         user = oauth.handle_callback(request.url)
         if user:
             next_page = request.args.get('next')
             if next_page:
                 return redirect(next_page)
-            return redirect(url_for('main.index'))
+            return redirect(url_for('index'))
         
-        return redirect(url_for('main.index'))
+        return redirect(url_for('index'))
     except Exception as e:
         flash(f'Error during authentication: {str(e)}', 'error')
-        return redirect(url_for('main.index'))
+        return redirect(url_for('index'))
 
 @auth.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('Successfully logged out.', 'success')
-    return redirect(url_for('main.index'))
+    return redirect(url_for('index'))
 

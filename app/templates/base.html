@@ -14,7 +14,17 @@
     {% if current_user.is_authenticated %}
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">BB Expense App</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">BB Expense App</a>
+            
+            {% if current_user.is_authenticated %}
+            <div class="navbar-nav me-auto">
+                {% if current_user.is_admin %}
+                <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+                {% endif %}
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('upload') }}">Upload Receipt</a>
+            </div>
+            
             <div class="ms-auto">
                 <div class="dropdown">
                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
@@ -25,6 +35,7 @@
                     </ul>
                 </div>
             </div>
+            {% endif %}
         </div>
     </nav>
     {% endif %}

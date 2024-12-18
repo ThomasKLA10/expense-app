@@ -50,7 +50,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Receipt Image</h5>
                     {% if receipt.file_path.lower().endswith(('.png', '.jpg', '.jpeg')) %}
-                        <img src="{{ url_for('static', filename='uploads/' + receipt.file_path) }}" 
+                        <img src="{{ url_for('main.uploaded_file', filename=receipt.file_path) }}" 
                              class="img-fluid" 
                              alt="Receipt">
                     {% else %}

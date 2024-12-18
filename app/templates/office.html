@@ -18,7 +18,7 @@
             <h2>{{ location.title() }} Office Dashboard</h2>
         </div>
         <div class="col text-end">
-            <a href="{{ url_for('main.upload') }}" class="btn btn-primary">Upload Receipt</a>
+            <a href="{{ url_for('upload') }}" class="btn btn-primary">Upload Receipt</a>
         </div>
     </div>
 
@@ -47,7 +47,7 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="{{ url_for('main.view_receipt', receipt_id=receipt.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" class="btn btn-sm btn-outline-primary">View</a>
                             </td>
                         </tr>
                         {% else %}
