@@ -9,14 +9,6 @@ import importlib
 
 main = Blueprint('main', __name__)
 
-# Try to import OCR, but make it optional
-try:
-    from .ocr import ReceiptScanner
-    HAS_OCR = True
-except ImportError:
-    HAS_OCR = False
-    print("Warning: OCR functionality not available")
-
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -54,26 +46,25 @@ def upload():
                 filename = secure_filename(file.filename)
                 filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
                 
-                # Try OCR if available
-                scan_result = None
-                if HAS_OCR:
-                    try:
-                        scanner = ReceiptScanner()
-                        scan_result = scanner.scan_receipt(file)
-                        # Reset file pointer after OCR
-                        file.seek(0)
-                    except Exception as e:
-                        print(f"OCR Error: {str(e)}")
-                
                 # Save the file
                 file.save(filepath)
                 
-                if scan_result:
-                    return render_template('upload.html', 
-                        scan_result=scan_result,
-                        show_confirmation=True
-                    )
-                    
+                # Create receipt record
+                receipt = Receipt(
+                    file_path=filepath,
+                    user_id=current_user.id,
+                    amount=float(request.form.get('amount', 0)),
+                    currency=request.form.get('currency', 'EUR'),
+                    category=request.form.get('category', 'other'),
+                    date_submitted=datetime.utcnow(),
+                    status='pending',
+                    purpose=request.form.get('purpose', '')
+                )
+                
+                db.session.add(receipt)
+                db.session.commit()
+                
+                flash('Receipt uploaded successfully!', 'success')
                 return redirect(url_for('main.dashboard'))
                 
         except Exception as e:
