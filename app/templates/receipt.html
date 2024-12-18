@@ -7,7 +7,7 @@
             <h2>Receipt Details</h2>
         </div>
         <div class="col text-end">
-            <a href="{{ url_for('main.office', location=receipt.office) }}" class="btn btn-outline-primary">Back to Dashboard</a>
+            <a href="{{ url_for('office', location=receipt.office) }}" class="btn btn-outline-primary">Back to Dashboard</a>
         </div>
     </div>
 
@@ -49,13 +49,14 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Receipt Image</h5>
+                    <p>Debug URL: {{ url_for('uploaded_file', filename=receipt.file_path) }}</p>
                     {% if receipt.file_path.lower().endswith(('.png', '.jpg', '.jpeg')) %}
-                        <img src="{{ url_for('main.uploaded_file', filename=receipt.file_path) }}" 
+                        <img src="{{ url_for('uploaded_file', filename=receipt.file_path) }}" 
                              class="img-fluid" 
                              alt="Receipt">
                     {% else %}
                         <div class="text-center">
-                            <a href="{{ url_for('static', filename='uploads/' + receipt.file_path) }}" 
+                            <a href="{{ url_for('uploaded_file', filename=receipt.file_path) }}" 
                                class="btn btn-primary" 
                                target="_blank">
                                 View PDF

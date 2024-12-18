@@ -1,6 +1,7 @@
 from .extensions import db, login_manager
 from flask_login import UserMixin
 from datetime import datetime
+import os
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -25,8 +26,12 @@ class Receipt(db.Model):
     travel_to = db.Column(db.String(100))
     departure_date = db.Column(db.Date)
     return_date = db.Column(db.Date)
-    file_path = db.Column(db.String(200), nullable=False)
+    file_path_db = db.Column(db.String(200), nullable=False)
     date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='pending')
     office = db.Column(db.String(50), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    @property
+    def file_path(self):
+        return os.path.basename(self.file_path_db)

@@ -7,7 +7,7 @@
             <h2>Receipt Details</h2>
         </div>
         <div class="col-auto">
-            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
                 <i class="bi bi-arrow-left"></i> Back to Dashboard
             </a>
         </div>
@@ -68,7 +68,7 @@
                             <p class="text-muted small mt-2">Hover over the receipt to zoom</p>
                         </div>
                         <div class="receipt-zoom-container">
-                            <img src="{{ url_for('main.uploaded_file', filename=receipt.file_path) }}" 
+                            <img src="{{ url_for('uploaded_file', filename=receipt.file_path) }}" 
                                  alt="Receipt" class="receipt-image">
                         </div>
                     </div>

@@ -22,9 +22,10 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Create uploads directory
+    # Create uploads directory with absolute path
     uploads_dir = os.path.join(app.root_path, 'uploads')
     os.makedirs(uploads_dir, exist_ok=True)
+    app.config['UPLOAD_FOLDER'] = uploads_dir
     
     # Initialize extensions
     db.init_app(app)
@@ -71,7 +72,7 @@ def create_app():
                     amount=float(request.form['amount']),
                     currency=request.form['currency'],
                     category=request.form['category'],
-                    file_path=filename,
+                    file_path_db=filename,
                     user_id=current_user.id,
                     office=request.form['office']
                 )
@@ -103,7 +104,14 @@ def create_app():
     @app.route('/uploads/<filename>')
     @login_required
     def uploaded_file(filename):
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+        print(f"Accessing file: {filename}")
+        print(f"Upload folder: {app.config['UPLOAD_FOLDER']}")
+        print(f"Full path: {os.path.join(app.config['UPLOAD_FOLDER'], filename)}")
+        try:
+            return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+        except Exception as e:
+            print(f"Error serving file: {str(e)}")
+            return f"Error: {str(e)}", 500
 
     @app.route('/office/<location>')
     @login_required
