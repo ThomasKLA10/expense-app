@@ -5,8 +5,17 @@ from datetime import datetime
 from . import db
 from .models import Receipt
 from flask_login import login_required, current_user
+import importlib
 
 main = Blueprint('main', __name__)
+
+# Try to import OCR, but make it optional
+try:
+    from .ocr import ReceiptScanner
+    HAS_OCR = True
+except ImportError:
+    HAS_OCR = False
+    print("Warning: OCR functionality not available")
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
@@ -40,65 +49,35 @@ def office(location):
 def upload():
     if request.method == 'POST':
         try:
-            # Get form data
-            amount = float(request.form['amount'].replace(',', ''))
-            currency = request.form['currency']
-            category = request.form['category']
-            
-            # Get travel-specific data only if category is travel
-            travel_data = {}
-            if category == 'travel':
-                travel_data = {
-                    'purpose': request.form.get('purpose'),
-                    'travel_from': request.form.get('travel_from'),
-                    'travel_to': request.form.get('travel_to'),
-                    'departure_date': datetime.strptime(request.form.get('departure_date'), '%Y-%m-%d').date() if request.form.get('departure_date') else None,
-                    'return_date': datetime.strptime(request.form.get('return_date'), '%Y-%m-%d').date() if request.form.get('return_date') else None
-                }
-            
-            # Handle file upload
-            if 'receipt' not in request.files:
-                flash('No file uploaded', 'error')
-                return redirect(request.url)
-            
             file = request.files['receipt']
-            if file.filename == '':
-                flash('No file selected', 'error')
-                return redirect(request.url)
-            
             if file and allowed_file(file.filename):
-                # Generate unique filename
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f"{timestamp}_RECEIPT_{category.upper()}{file.filename.rsplit('.', 1)[1].lower()}"
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
                 
-                # Use the correct path
-                uploads_dir = os.path.join(current_app.root_path, 'uploads')
-                file_path = os.path.join(uploads_dir, filename)
+                # Try OCR if available
+                scan_result = None
+                if HAS_OCR:
+                    try:
+                        scanner = ReceiptScanner()
+                        scan_result = scanner.scan_receipt(file)
+                        # Reset file pointer after OCR
+                        file.seek(0)
+                    except Exception as e:
+                        print(f"OCR Error: {str(e)}")
                 
                 # Save the file
-                file.save(file_path)
+                file.save(filepath)
                 
-                # Create receipt record
-                receipt = Receipt(
-                    amount=amount,
-                    currency=currency,
-                    category=category,
-                    file_path=filename,
-                    office=request.args.get('office', 'bonn'),
-                    user_id=current_user.id  # Add user_id to receipt
-                )
+                if scan_result:
+                    return render_template('upload.html', 
+                        scan_result=scan_result,
+                        show_confirmation=True
+                    )
+                    
+                return redirect(url_for('main.dashboard'))
                 
-                db.session.add(receipt)
-                db.session.commit()
-                
-                flash('Receipt uploaded successfully!', 'success')
-                return redirect(url_for('main.office', location=receipt.office))
-            
-            flash('Invalid file type', 'error')
-            return redirect(request.url)
-            
         except Exception as e:
-            flash(f'Error uploading receipt: {str(e)}', 'error')
+            flash(f'Error uploading file: {str(e)}', 'error')
             return redirect(request.url)
             
     return render_template('upload.html')

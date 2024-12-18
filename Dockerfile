@@ -2,13 +2,23 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y postgresql-client
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    gcc \
+    python3-dev \
+    libpq-dev
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN pip install --no-cache-dir \
+    google-cloud-vision \
+    google-cloud-storage
+
 COPY . .
-COPY .env .env
+
+# Create default .env if not exists
+RUN touch .env
 
 ENV FLASK_APP=run.py
 ENV FLASK_ENV=development
