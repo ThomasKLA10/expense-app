@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort, send_from_directory
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
@@ -67,12 +67,16 @@ def upload():
                 return redirect(request.url)
             
             if file and allowed_file(file.filename):
-                # Create unique filename
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-                filename = timestamp + secure_filename(file.filename)
+                # Generate unique filename
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"{timestamp}_RECEIPT_{category.upper()}{file.filename.rsplit('.', 1)[1].lower()}"
                 
-                # Save file
-                file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+                # Use the correct path
+                uploads_dir = os.path.join(current_app.root_path, 'uploads')
+                file_path = os.path.join(uploads_dir, filename)
+                
+                # Save the file
+                file.save(file_path)
                 
                 # Create receipt record
                 receipt = Receipt(
@@ -100,6 +104,20 @@ def upload():
     return render_template('upload.html')
 
 @main.route('/receipt/<int:receipt_id>')
+@login_required
 def view_receipt(receipt_id):
     receipt = Receipt.query.get_or_404(receipt_id)
-    return render_template('receipt.html', receipt=receipt)
+    if receipt.user_id != current_user.id:
+        abort(403)
+    return render_template('view_receipt.html', receipt=receipt)
+
+@main.route('/uploads/<path:filename>')
+@login_required
+def uploaded_file(filename):
+    try:
+        return send_from_directory(
+            os.path.join(current_app.root_path, 'uploads'),
+            filename
+        )
+    except Exception:
+        abort(404)

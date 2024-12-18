@@ -7,6 +7,10 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Create uploads directory
+    uploads_dir = os.path.join(app.root_path, 'uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+    
     # Only allow HTTP in development
     if app.debug:
         os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Receipt Details</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Receipt Information</h5>
+                    <dl class="row">
+                        <dt class="col-sm-4">Date</dt>
+                        <dd class="col-sm-8">{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</dd>
+                        
+                        <dt class="col-sm-4">Amount</dt>
+                        <dd class="col-sm-8">{{ receipt.amount }} {{ receipt.currency }}</dd>
+                        
+                        <dt class="col-sm-4">Category</dt>
+                        <dd class="col-sm-8">{{ receipt.category|title }}</dd>
+                        
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-{{ 'success' if receipt.status == 'approved' 
+                                                else 'warning' if receipt.status == 'pending' 
+                                                else 'danger' }}">
+                                {{ receipt.status }}
+                            </span>
+                        </dd>
+                        
+                        {% if receipt.category == 'travel' %}
+                            <dt class="col-sm-4">Purpose</dt>
+                            <dd class="col-sm-8">{{ receipt.purpose or 'N/A' }}</dd>
+                            
+                            <dt class="col-sm-4">From</dt>
+                            <dd class="col-sm-8">{{ receipt.travel_from or 'N/A' }}</dd>
+                            
+                            <dt class="col-sm-4">To</dt>
+                            <dd class="col-sm-8">{{ receipt.travel_to or 'N/A' }}</dd>
+                            
+                            <dt class="col-sm-4">Departure</dt>
+                            <dd class="col-sm-8">{{ receipt.departure_date.strftime('%Y-%m-%d') if receipt.departure_date else 'N/A' }}</dd>
+                            
+                            <dt class="col-sm-4">Return</dt>
+                            <dd class="col-sm-8">{{ receipt.return_date.strftime('%Y-%m-%d') if receipt.return_date else 'N/A' }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Receipt Image</h5>
+                    <div class="receipt-preview-layout">
+                        <div class="magnifier-panel">
+                            <div class="magnifier-view"></div>
+                            <p class="text-muted small mt-2">Hover over the receipt to zoom</p>
+                        </div>
+                        <div class="receipt-zoom-container">
+                            <img src="{{ url_for('main.uploaded_file', filename=receipt.file_path) }}" 
+                                 alt="Receipt" class="receipt-image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+{% endblock %} 
