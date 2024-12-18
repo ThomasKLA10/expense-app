@@ -125,6 +125,38 @@
         </div>
     </div>
 
+    <!-- OCR Results Section -->
+    <div id="ocr-results" class="mb-4 d-none">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">OCR Results</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Total Amount</dt>
+                            <dd class="col-sm-8" id="ocr-amount"></dd>
+                            
+                            <dt class="col-sm-4">Subtotal</dt>
+                            <dd class="col-sm-8" id="ocr-subtotal"></dd>
+                            
+                            <dt class="col-sm-4">Tax</dt>
+                            <dd class="col-sm-8" id="ocr-tax"></dd>
+                            
+                            <dt class="col-sm-4">Date</dt>
+                            <dd class="col-sm-8" id="ocr-date"></dd>
+                            
+                            <dt class="col-sm-4">Merchant</dt>
+                            <dd class="col-sm-8" id="ocr-merchant"></dd>
+                            
+                            <dt class="col-sm-4">Currency</dt>
+                            <dd class="col-sm-8" id="ocr-currency"></dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <button type="submit" class="btn btn-primary">Submit</button>
 </form>
 
@@ -155,6 +187,10 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Add spacing at the bottom -->
+<div class="mb-5"></div>
+<div class="mb-5"></div>
 {% endblock %}
 
 {% block scripts %}

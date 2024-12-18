@@ -34,6 +34,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     pdfPreview.classList.remove('d-none');
                     pdfPreview.querySelector('.pdf-filename').textContent = file.name;
                 }
+
+                // Send for OCR processing
+                const formData = new FormData();
+                formData.append('receipt', file);
+                
+                fetch('/ocr', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => handleOCRResponse(data))
+                .catch(error => console.error('Error:', error));
             }
         });
     }
@@ -64,6 +76,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 parts[1] = parts[1].slice(0, 2);
             }
             this.value = parts.join('.');
+        });
+    }
+
+    // OCR handling
+    const applyOcrButton = document.getElementById('apply-ocr');
+    const ocrResults = document.getElementById('ocr-results');
+    
+    function handleOCRResponse(data) {
+        if (data.success) {
+            // Show OCR results section
+            document.getElementById('ocr-results').classList.remove('d-none');
+            
+            // Update all OCR results
+            if (data.amount) {
+                document.getElementById('ocr-amount').textContent = data.amount;
+                document.getElementById('amount').value = data.amount; // Auto-fill amount
+            }
+            if (data.subtotal) {
+                document.getElementById('ocr-subtotal').textContent = data.subtotal;
+            }
+            if (data.tax) {
+                document.getElementById('ocr-tax').textContent = data.tax;
+            }
+            if (data.currency) {
+                document.getElementById('ocr-currency').textContent = data.currency;
+                document.getElementById('currency').value = data.currency; // Auto-fill currency
+            }
+            if (data.date) {
+                document.getElementById('ocr-date').textContent = data.date;
+            }
+            if (data.merchant) {
+                document.getElementById('ocr-merchant').textContent = data.merchant;
+                document.getElementById('purpose').value = data.merchant; // Auto-fill purpose
+            }
+        }
+    }
+    
+    if (applyOcrButton) {
+        applyOcrButton.addEventListener('click', function() {
+            const amount = document.getElementById('ocr-amount').textContent;
+            if (amount) {
+                document.getElementById('amount').value = amount;
+            }
+            // Add more fields as needed
         });
     }
 });

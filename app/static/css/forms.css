@@ -158,3 +158,19 @@
     font-size: 0.875rem;
     color: #6c757d;
 }
+
+/* Add minimum height to the content area */
+.content {
+    min-height: 100vh;
+    padding-bottom: 100px;  /* Add padding at the bottom */
+}
+
+/* Add space after the form */
+form {
+    margin-bottom: 120px;  /* Add margin after the form */
+}
+
+/* Make sure the OCR results card has some breathing room */
+#ocr-results {
+    margin-bottom: 40px;
+}
