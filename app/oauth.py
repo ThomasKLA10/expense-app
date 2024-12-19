@@ -101,6 +101,11 @@ class GoogleOAuth:
                 users_email = userinfo_response.json()["email"]
                 users_name = userinfo_response.json()["name"]
                 
+                # Check if email is from bakkenbaeck.com domain
+                if not users_email.endswith('@bakkenbaeck.no'):
+                    flash('Only @bakkenbaeck.no email addresses are allowed.', 'error')
+                    return None
+                
                 # Create or update user
                 user = User.query.filter_by(email=users_email).first()
                 if not user:
