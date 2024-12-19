@@ -31,7 +31,17 @@ class Receipt(db.Model):
     status = db.Column(db.String(20), default='pending')
     office = db.Column(db.String(50), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    archived = db.Column(db.Boolean, default=False, nullable=False)
 
     @property
     def file_path(self):
         return os.path.basename(self.file_path_db)
+
+    @property
+    def office_display(self):
+        office_names = {
+            'oslo': 'Oslo',
+            'bonn': 'Bonn',
+            'amsterdam': 'Amsterdam'
+        }
+        return f"Office in {office_names.get(self.office.lower(), self.office)}"

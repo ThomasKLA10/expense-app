@@ -188,6 +188,19 @@ def create_app():
         flash(f'{"Removed admin privileges from" if not user.is_admin else "Granted admin privileges to"} {user.name}.', 'success')
         return redirect(url_for('admin_users'))
 
+    @app.route('/receipt/<int:receipt_id>/archive', methods=['POST'])
+    @login_required
+    def archive_receipt(receipt_id):
+        receipt = Receipt.query.get_or_404(receipt_id)
+        if receipt.user_id != current_user.id:
+            abort(403)
+        
+        receipt.archived = True
+        db.session.commit()
+        
+        flash('Receipt archived successfully.', 'success')
+        return redirect(url_for('dashboard'))
+
     # Create database tables
     with app.app_context():
         db.create_all()

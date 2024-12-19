@@ -29,39 +29,156 @@
 
         <div class="col-md-9">
             {% if receipts %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Category</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for receipt in receipts %}
-                        <tr>
-                            <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
-                            <td>{{ receipt.amount }} {{ receipt.currency }}</td>
-                            <td>{{ receipt.category }}</td>
-                            <td>
-                                <span class="badge bg-{{ 'success' if receipt.status == 'approved' 
-                                                    else 'warning' if receipt.status == 'pending' 
-                                                    else 'danger' }}">
-                                    {{ receipt.status }}
-                                </span>
-                            </td>
-                            <td>
-                                <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Active Receipts</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for receipt in receipts if not receipt.archived %}
+                                <tr>
+                                    <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ receipt.amount }} {{ receipt.currency }}</td>
+                                    <td>{{ receipt.category }}</td>
+                                    <td>
+                                        {% if receipt.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif receipt.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if receipt.status in ['approved', 'rejected'] %}
+                                        <form method="POST" action="{{ url_for('archive_receipt', receipt_id=receipt.id) }}" 
+                                              class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                    onclick="return confirm('Archive this receipt?')">
+                                                <i class="bi bi-archive"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No active receipts</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion" id="archivedReceipts">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#approvedReceipts">
+                            Approved Receipts
+                        </button>
+                    </h2>
+                    <div id="approvedReceipts" class="accordion-collapse collapse" data-bs-parent="#archivedReceipts">
+                        <div class="accordion-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Amount</th>
+                                            <th>Category</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for receipt in receipts if receipt.status == 'approved' %}
+                                        <tr>
+                                            <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ receipt.amount }} {{ receipt.currency }}</td>
+                                            <td>{{ receipt.category }}</td>
+                                            <td>
+                                                <span class="badge bg-success">{{ receipt.status }}</span>
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center">No approved receipts</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rejectedReceipts">
+                            Rejected Receipts
+                        </button>
+                    </h2>
+                    <div id="rejectedReceipts" class="accordion-collapse collapse" data-bs-parent="#archivedReceipts">
+                        <div class="accordion-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Amount</th>
+                                            <th>Category</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for receipt in receipts if receipt.status == 'rejected' %}
+                                        <tr>
+                                            <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ receipt.amount }} {{ receipt.currency }}</td>
+                                            <td>{{ receipt.category }}</td>
+                                            <td>
+                                                <span class="badge bg-danger">{{ receipt.status }}</span>
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center">No rejected receipts</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             {% else %}
             <div class="text-center py-5">
@@ -75,4 +192,23 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.querySelectorAll('.accordion-collapse').forEach(collapse => {
+    collapse.addEventListener('shown.bs.collapse', event => {
+        localStorage.setItem(event.target.id + '_expanded', 'true');
+    });
+    collapse.addEventListener('hidden.bs.collapse', event => {
+        localStorage.setItem(event.target.id + '_expanded', 'false');
+    });
+    
+    const expanded = localStorage.getItem(collapse.id + '_expanded') === 'true';
+    if (expanded) {
+        new bootstrap.Collapse(collapse, { toggle: true });
+    }
+});
+</script>
 {% endblock %} 
