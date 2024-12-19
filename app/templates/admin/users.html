@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>User Management</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Admin Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if user.is_admin else 'secondary' }}">
+                                {{ 'Admin' if user.is_admin else 'User' }}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('toggle_admin', user_id=user.id) }}" class="d-inline">
+                                <button type="submit" 
+                                        class="btn btn-sm btn-{{ 'danger' if user.is_admin else 'success' }}"
+                                        {% if user.id == current_user.id %}disabled{% endif %}
+                                        onclick="if(!confirm('Are you sure?')) return false;">
+                                    {{ 'Remove Admin' if user.is_admin else 'Make Admin' }}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -3,7 +3,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, sen
 from flask_login import login_required, current_user
 from .extensions import db, migrate, login_manager
 from .config import Config
-from .models import Receipt
+from .models import Receipt, User
 from .ocr import ReceiptScanner
 from werkzeug.utils import secure_filename
 from functools import wraps
@@ -167,6 +167,26 @@ def create_app():
             db.session.commit()
             return redirect(url_for('admin_dashboard'))
         return render_template('admin/receipt_review.html', receipt=receipt)
+
+    @app.route('/admin/users')
+    @admin_required
+    def admin_users():
+        users = User.query.order_by(User.name).all()
+        return render_template('admin/users.html', users=users, current_user=current_user)
+
+    @app.route('/admin/users/<int:user_id>/toggle-admin', methods=['POST'])
+    @admin_required
+    def toggle_admin(user_id):
+        if current_user.id == user_id:
+            flash('You cannot modify your own admin status.', 'error')
+            return redirect(url_for('admin_users'))
+        
+        user = User.query.get_or_404(user_id)
+        user.is_admin = not user.is_admin
+        db.session.commit()
+        
+        flash(f'{"Removed admin privileges from" if not user.is_admin else "Granted admin privileges to"} {user.name}.', 'success')
+        return redirect(url_for('admin_users'))
 
     # Create database tables
     with app.app_context():
