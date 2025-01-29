@@ -43,6 +43,5 @@ def callback():
 @login_required
 def logout():
     logout_user()
-    flash('Successfully logged out.', 'success')
     return redirect(url_for('index'))
 

@@ -58,6 +58,12 @@ def create_app():
                 flash('No file selected', 'error')
                 return redirect(request.url)
             
+            # Get office location with default
+            office = request.form.get('office')
+            if not office:
+                flash('Please select an office location', 'error')
+                return redirect(request.url)
+            
             file = request.files['receipt']
             if file.filename == '':
                 flash('No file selected', 'error')
