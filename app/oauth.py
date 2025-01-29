@@ -117,15 +117,12 @@ class GoogleOAuth:
                     db.session.commit()
                 
                 login_user(user)
-                flash(f'Welcome, {user.name}!', 'success')
                 return user
             else:
-                flash('Email not verified by Google.', 'error')
                 return None
             
         except Exception as e:
             print(f"Error in handle_callback: {str(e)}")
             import traceback
             traceback.print_exc()
-            flash('Authentication failed. Please try again.', 'error')
             return None

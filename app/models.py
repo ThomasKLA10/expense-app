@@ -45,3 +45,9 @@ class Receipt(db.Model):
             'amsterdam': 'Amsterdam'
         }
         return f"Office in {office_names.get(self.office.lower(), self.office)}"
+
+    @classmethod
+    def group_receipts(cls, receipts):
+        if len(receipts) == 1:
+            return receipts[0].category
+        return "Various"

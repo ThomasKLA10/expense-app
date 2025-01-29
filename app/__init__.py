@@ -55,18 +55,15 @@ def create_app():
     def upload():
         if request.method == 'POST':
             if 'receipt' not in request.files:
-                flash('No file selected', 'error')
                 return redirect(request.url)
             
             # Get office location with default
             office = request.form.get('office')
             if not office:
-                flash('Please select an office location', 'error')
                 return redirect(request.url)
             
             file = request.files['receipt']
             if file.filename == '':
-                flash('No file selected', 'error')
                 return redirect(request.url)
 
             if file:
@@ -92,8 +89,6 @@ def create_app():
                 
                 db.session.add(receipt)
                 db.session.commit()
-                
-                flash('Receipt uploaded successfully!', 'success')
                 return redirect(url_for('dashboard'))
         
         return render_template('upload.html')
@@ -103,7 +98,6 @@ def create_app():
     def view_receipt(receipt_id):
         receipt = Receipt.query.get_or_404(receipt_id)
         if receipt.user_id != current_user.id:
-            flash('Unauthorized access', 'error')
             return redirect(url_for('dashboard'))
         return render_template('receipt.html', receipt=receipt)
 
@@ -158,6 +152,17 @@ def create_app():
         receipts = Receipt.query.order_by(Receipt.date_submitted.desc()).all()
         return render_template('admin/admin_dashboard.html', receipts=receipts)
 
+    @app.route('/receipt/<int:receipt_id>/archive', methods=['POST'])
+    @login_required
+    def archive_receipt(receipt_id):
+        receipt = Receipt.query.get_or_404(receipt_id)
+        if receipt.user_id != current_user.id:
+            abort(403)
+        
+        receipt.archived = True
+        db.session.commit()
+        return redirect(url_for('dashboard'))
+
     @app.route('/admin/receipt/<int:receipt_id>', methods=['GET', 'POST'])
     @admin_required
     def admin_receipt(receipt_id):
@@ -166,10 +171,9 @@ def create_app():
             action = request.form.get('action')
             if action == 'approve':
                 receipt.status = 'approved'
-                flash('Receipt approved', 'success')
+                receipt.archived = True
             elif action == 'reject':
                 receipt.status = 'rejected'
-                flash('Receipt rejected', 'success')
             db.session.commit()
             return redirect(url_for('admin_dashboard'))
         return render_template('admin/receipt_review.html', receipt=receipt)
@@ -184,28 +188,12 @@ def create_app():
     @admin_required
     def toggle_admin(user_id):
         if current_user.id == user_id:
-            flash('You cannot modify your own admin status.', 'error')
             return redirect(url_for('admin_users'))
         
         user = User.query.get_or_404(user_id)
         user.is_admin = not user.is_admin
         db.session.commit()
-        
-        flash(f'{"Removed admin privileges from" if not user.is_admin else "Granted admin privileges to"} {user.name}.', 'success')
         return redirect(url_for('admin_users'))
-
-    @app.route('/receipt/<int:receipt_id>/archive', methods=['POST'])
-    @login_required
-    def archive_receipt(receipt_id):
-        receipt = Receipt.query.get_or_404(receipt_id)
-        if receipt.user_id != current_user.id:
-            abort(403)
-        
-        receipt.archived = True
-        db.session.commit()
-        
-        flash('Receipt archived successfully.', 'success')
-        return redirect(url_for('dashboard'))
 
     # Create database tables
     with app.app_context():
