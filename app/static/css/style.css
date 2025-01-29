@@ -52,7 +52,7 @@ body {
 }
 
 .google-signin-btn:hover {
-    background-color: #f8f9fa;
+    background-color: #082441;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
