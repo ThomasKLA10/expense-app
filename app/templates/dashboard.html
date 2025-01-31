@@ -1,28 +1,61 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="row mb-4">
-        <div class="col">
-            <h1>Welcome, {{ current_user.name }}!</h1>
-        </div>
-        <div class="col-auto">
-            <a href="{{ url_for('upload') }}" class="btn btn-primary">
-                <i class="bi bi-plus-lg"></i> Upload Receipt
-            </a>
+    <!-- Toast notifications -->
+    {% if status_updates %}
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1050">
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Receipt Update</strong>
+                <small>just now</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                {% if status_updates|length == 1 %}
+                    One of your receipts has been reviewed and archived
+                {% else %}
+                    {{ status_updates|length }} receipts have been reviewed and archived
+                {% endif %}
+            </div>
         </div>
     </div>
+    {% endif %}
 
-    <div class="row">
-        <div class="col-md-12">
-            {% if receipts %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Active Receipts</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
+    <!-- Notification section -->
+    {% if updated_receipts %}
+    <div class="alert alert-info" role="alert">
+        <h4 class="alert-heading">Updates Since Your Last Visit</h4>
+        <p>The following receipts have been updated:</p>
+        <ul>
+        {% for receipt in updated_receipts %}
+            <li>Receipt #{{ receipt.id }} - {{ receipt.amount }} {{ receipt.currency }} 
+                ({{ receipt.category }}) - Updated at {{ receipt.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col">
+                <h1>Welcome, {{ current_user.name }}!</h1>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i> Upload Receipt
+                </a>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <!-- Active Receipts -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h2>Active Receipts</h2>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -33,68 +66,80 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for receipt in receipts if not receipt.archived %}
-                                <tr>
-                                    <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
-                                    <td>{{ receipt.amount }} {{ receipt.currency }}</td>
-                                    <td>{{ receipt.category }}</td>
-                                    <td>
-                                        {% if receipt.status == 'pending' %}
-                                            <span class="badge bg-warning">Pending</span>
-                                        {% elif receipt.status == 'approved' %}
-                                            <span class="badge bg-success">Approved</span>
-                                        {% else %}
-                                            <span class="badge bg-danger">Rejected</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" 
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        {% if receipt.status in ['approved', 'rejected'] %}
-                                        <form method="POST" action="{{ url_for('archive_receipt', receipt_id=receipt.id) }}" 
-                                              class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                                <i class="bi bi-archive"></i>
-                                            </button>
-                                        </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
+                                {% if active_receipts.items %}
+                                    {% for receipt in active_receipts.items %}
+                                    <tr>
+                                        <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ receipt.amount }} {{ receipt.currency }}</td>
+                                        <td>{{ receipt.category }}</td>
+                                        <td>
+                                            {% if receipt.status == 'pending' %}
+                                                <span class="badge bg-warning">Pending</span>
+                                            {% elif receipt.status == 'approved' %}
+                                                <span class="badge bg-success">Approved</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Rejected</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% if receipt.status in ['approved', 'rejected'] %}
+                                            <form method="POST" action="{{ url_for('archive_receipt', receipt_id=receipt.id) }}" 
+                                                  class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-archive"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
                                 {% else %}
-                                <tr>
-                                    <td colspan="5" class="text-center">No active receipts</td>
-                                </tr>
-                                {% endfor %}
+                                <tr><td colspan="5">No active receipts</td></tr>
+                                {% endif %}
                             </tbody>
                         </table>
+                        
+                        {% if active_receipts.pages > 1 %}
+                        <div class="d-flex justify-content-center mt-3">
+                            <nav>
+                                <ul class="pagination">
+                                    {% for page in range(1, active_receipts.pages + 1) %}
+                                    <li class="page-item {% if page == active_receipts.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('dashboard', page_active=page, page_archived=request.args.get('page_archived', 1)) }}">
+                                            {{ page }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </nav>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-            </div>
 
-            <div class="card mb-4">
-                <div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#archivedReceipts" aria-expanded="false" aria-controls="archivedReceipts">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Archived Receipts</h5>
-                        <i class="bi bi-chevron-down"></i>
+                <!-- Archived Receipts -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Archived Receipts</h2>
                     </div>
-                </div>
-                <div class="collapse" id="archivedReceipts">
                     <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Total</th>
-                                        <th>Category</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for receipt in receipts if receipt.archived %}
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if archived_receipts.items %}
+                                    {% for receipt in archived_receipts.items %}
                                     <tr>
                                         <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
                                         <td>{{ receipt.amount }} {{ receipt.currency }}</td>
@@ -115,29 +160,33 @@
                                             </a>
                                         </td>
                                     </tr>
-                                    {% else %}
-                                    <tr>
-                                        <td colspan="5" class="text-center">No archived receipts</td>
-                                    </tr>
                                     {% endfor %}
-                                </tbody>
-                            </table>
+                                {% else %}
+                                <tr><td colspan="5">No archived receipts</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                        
+                        {% if archived_receipts.pages > 1 %}
+                        <div class="d-flex justify-content-center mt-3">
+                            <nav>
+                                <ul class="pagination">
+                                    {% for page in range(1, archived_receipts.pages + 1) %}
+                                    <li class="page-item {% if page == archived_receipts.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('dashboard', page_archived=page, page_active=request.args.get('page_active', 1)) }}">
+                                            {{ page }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </nav>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-            {% else %}
-            <div class="text-center py-5">
-                <h3>No receipts yet</h3>
-                <p class="text-muted">Start by uploading your first receipt!</p>
-                <a href="{{ url_for('upload') }}" class="btn btn-primary">
-                    <i class="bi bi-plus-lg"></i> Upload Receipt
-                </a>
-            </div>
-            {% endif %}
         </div>
     </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -155,6 +204,16 @@ document.querySelectorAll('.accordion-collapse').forEach(collapse => {
     if (expanded) {
         new bootstrap.Collapse(collapse, { toggle: true });
     }
+});
+
+// Auto-hide toasts after 3 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    let toasts = document.querySelectorAll('.toast');
+    toasts.forEach(toast => {
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 60000);
+    });
 });
 </script>
 {% endblock %} 

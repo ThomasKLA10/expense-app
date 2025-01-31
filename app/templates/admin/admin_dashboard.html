@@ -44,7 +44,7 @@
                                 <span class="badge bg-warning">{{ receipt.status }}</span>
                             </td>
                             <td>
-                                <a href="{{ url_for('admin_receipt', receipt_id=receipt.id) }}" 
+                                <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
                                    class="btn btn-sm btn-primary">Review</a>
                             </td>
                         </tr>
@@ -95,7 +95,7 @@
                                         <span class="badge bg-success">{{ receipt.status }}</span>
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('admin_receipt', receipt_id=receipt.id) }}" 
+                                        <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
                                            class="btn btn-sm btn-primary">Review</a>
                                     </td>
                                 </tr>
@@ -145,7 +145,7 @@
                                         <span class="badge bg-danger">{{ receipt.status }}</span>
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('admin_receipt', receipt_id=receipt.id) }}" 
+                                        <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
                                            class="btn btn-sm btn-primary">Review</a>
                                     </td>
                                 </tr>

@@ -8,6 +8,7 @@ from .ocr import ReceiptScanner
 from werkzeug.utils import secure_filename
 from functools import wraps
 from flask import abort
+from datetime import datetime, timezone
 
 def admin_required(f):
     @wraps(f)
@@ -47,8 +48,45 @@ def create_app():
     @app.route('/dashboard')
     @login_required
     def dashboard():
-        receipts = Receipt.query.filter_by(user_id=current_user.id).order_by(Receipt.date_submitted.desc()).all()
-        return render_template('dashboard.html', receipts=receipts)
+        page_active = request.args.get('page_active', 1, type=int)
+        page_archived = request.args.get('page_archived', 1, type=int)
+        per_page = 6  # 6 receipts per page
+        
+        # Get active receipts with pagination
+        active_receipts = Receipt.query.filter_by(
+            user_id=current_user.id, 
+            archived=False
+        ).order_by(Receipt.date_submitted.desc()).paginate(
+            page=page_active, 
+            per_page=per_page, 
+            error_out=False
+        )
+        
+        # Get archived receipts with pagination
+        archived_receipts = Receipt.query.filter_by(
+            user_id=current_user.id, 
+            archived=True
+        ).order_by(Receipt.date_submitted.desc()).paginate(
+            page=page_archived, 
+            per_page=per_page, 
+            error_out=False
+        )
+        
+        # Status updates (unchanged)
+        status_updates = []
+        if current_user.last_checked:
+            status_updates = [r for r in active_receipts.items 
+                             if r.updated_at 
+                             and r.updated_at > current_user.last_checked 
+                             and r.status in ['approved', 'rejected']]
+        
+        current_user.last_checked = datetime.now(timezone.utc)
+        db.session.commit()
+        
+        return render_template('dashboard.html', 
+                             active_receipts=active_receipts,
+                             archived_receipts=archived_receipts,
+                             status_updates=status_updates)
 
     @app.route('/upload', methods=['GET', 'POST'])
     @login_required
@@ -163,20 +201,40 @@ def create_app():
         db.session.commit()
         return redirect(url_for('dashboard'))
 
-    @app.route('/admin/receipt/<int:receipt_id>', methods=['GET', 'POST'])
-    @admin_required
-    def admin_receipt(receipt_id):
-        receipt = Receipt.query.get_or_404(receipt_id)
+    @app.route('/admin/receipt/<int:id>/review', methods=['GET', 'POST'])
+    @login_required
+    def admin_receipt_review(id):
+        if not current_user.is_admin:
+            abort(403)
+        
+        receipt = Receipt.query.get_or_404(id)
+        
         if request.method == 'POST':
             action = request.form.get('action')
-            if action == 'approve':
-                receipt.status = 'approved'
+            if action in ['approve', 'reject']:
+                receipt.status = action + 'd'  # 'approved' or 'rejected'
                 receipt.archived = True
-            elif action == 'reject':
-                receipt.status = 'rejected'
-            db.session.commit()
-            return redirect(url_for('admin_dashboard'))
+                receipt.updated_at = datetime.now(timezone.utc)
+                db.session.commit()
+                return redirect(url_for('admin_dashboard'))
+        
         return render_template('admin/receipt_review.html', receipt=receipt)
+
+    @app.route('/admin/receipt/<int:id>/<action>')
+    @login_required
+    def admin_receipt_action(id, action):
+        if not current_user.is_admin:
+            abort(403)
+        
+        receipt = Receipt.query.get_or_404(id)
+        
+        if action in ['approve', 'reject']:
+            receipt.status = 'approved' if action == 'approve' else 'rejected'
+            receipt.archived = True
+            receipt.updated_at = datetime.now(timezone.utc)
+            db.session.commit()
+        
+        return redirect(url_for('admin_dashboard'))
 
     @app.route('/admin/users')
     @admin_required
@@ -194,6 +252,46 @@ def create_app():
         user.is_admin = not user.is_admin
         db.session.commit()
         return redirect(url_for('admin_users'))
+
+    @app.route('/receipt/<int:id>/edit', methods=['POST'])
+    @login_required
+    def edit_receipt(id):
+        receipt = Receipt.query.get_or_404(id)
+        if receipt.user_id != current_user.id and not current_user.is_admin:
+            abort(403)
+        
+        # Update receipt fields
+        receipt.amount = request.form.get('amount')
+        receipt.category = request.form.get('category')
+        receipt.purpose = request.form.get('purpose')
+        receipt.currency = request.form.get('currency')
+        receipt.office = request.form.get('office')
+        # ... other fields ...
+        
+        # Update the updated_at timestamp
+        receipt.updated_at = datetime.now(timezone.utc)
+        
+        db.session.commit()
+        return redirect(url_for('dashboard'))
+
+    @app.route('/receipt/new', methods=['POST'])
+    @login_required
+    def new_receipt():
+        # Create new receipt
+        receipt = Receipt(
+            user_id=current_user.id,
+            amount=request.form.get('amount'),
+            category=request.form.get('category'),
+            purpose=request.form.get('purpose'),
+            currency=request.form.get('currency'),
+            office=request.form.get('office'),
+            date_submitted=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)  # Set initial updated_at
+        )
+        
+        db.session.add(receipt)
+        db.session.commit()
+        return redirect(url_for('dashboard'))
 
     # Create database tables
     with app.app_context():

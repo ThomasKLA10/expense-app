@@ -1,6 +1,6 @@
 from .extensions import db, login_manager
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
 @login_manager.user_loader
@@ -13,6 +13,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(120))
     is_admin = db.Column(db.Boolean, default=False)
+    last_checked = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     receipts = db.relationship('Receipt', backref='user', lazy=True)
 
 class Receipt(db.Model):
@@ -27,7 +28,8 @@ class Receipt(db.Model):
     departure_date = db.Column(db.Date)
     return_date = db.Column(db.Date)
     file_path_db = db.Column(db.String(200), nullable=False)
-    date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
+    date_submitted = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     status = db.Column(db.String(20), default='pending')
     office = db.Column(db.String(50), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
