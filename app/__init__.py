@@ -50,40 +50,41 @@ def create_app():
     def dashboard():
         page_active = request.args.get('page_active', 1, type=int)
         page_archived = request.args.get('page_archived', 1, type=int)
-        per_page = 6  # 6 receipts per page
+        per_page = 6
         
-        # Get active receipts with pagination
-        active_receipts = Receipt.query.filter_by(
-            user_id=current_user.id, 
-            archived=False
-        ).order_by(Receipt.date_submitted.desc()).paginate(
-            page=page_active, 
-            per_page=per_page, 
-            error_out=False
-        )
-        
-        # Get archived receipts with pagination
-        archived_receipts = Receipt.query.filter_by(
-            user_id=current_user.id, 
-            archived=True
-        ).order_by(Receipt.date_submitted.desc()).paginate(
-            page=page_archived, 
-            per_page=per_page, 
-            error_out=False
-        )
-        
-        # Status updates (unchanged)
+        # Check for status updates since last visit
         status_updates = []
         if current_user.last_checked:
-            status_updates = [r for r in active_receipts.items 
-                             if r.updated_at 
-                             and r.updated_at > current_user.last_checked 
-                             and r.status in ['approved', 'rejected']]
+            status_updates = Receipt.query.filter(
+                Receipt.user_id == current_user.id,
+                Receipt.updated_at > current_user.last_checked,
+                Receipt.status.in_(['approved', 'rejected'])
+            ).all()
         
+        # Update last_checked timestamp
         current_user.last_checked = datetime.now(timezone.utc)
         db.session.commit()
         
-        return render_template('dashboard.html', 
+        # Get paginated receipts
+        active_receipts = Receipt.query.filter_by(
+            user_id=current_user.id,
+            archived=False
+        ).order_by(Receipt.date_submitted.desc()).paginate(
+            page=page_active,
+            per_page=per_page,
+            error_out=False
+        )
+        
+        archived_receipts = Receipt.query.filter_by(
+            user_id=current_user.id,
+            archived=True
+        ).order_by(Receipt.date_submitted.desc()).paginate(
+            page=page_archived,
+            per_page=per_page,
+            error_out=False
+        )
+        
+        return render_template('dashboard.html',
                              active_receipts=active_receipts,
                              archived_receipts=archived_receipts,
                              status_updates=status_updates)

@@ -1,20 +1,25 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <!-- Toast notifications -->
+    <!-- Toast notifications with enhanced styling -->
     {% if status_updates %}
     <div class="position-fixed top-0 end-0 p-3" style="z-index: 1050">
-        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
+        <div class="toast show animate__animated animate__fadeInRight" role="alert" aria-live="assertive" aria-atomic="true" 
+             style="background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%); 
+                    color: white; 
+                    border: none; 
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <div class="toast-header" style="background: rgba(255,255,255,0.1); border: none; color: white;">
+                <i class="bi bi-bell-fill me-2"></i>
                 <strong class="me-auto">Receipt Update</strong>
                 <small>just now</small>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
-            <div class="toast-body">
+            <div class="toast-body" style="font-size: 1.1em;">
                 {% if status_updates|length == 1 %}
-                    One of your receipts has been reviewed and archived
+                    <i class="bi bi-check2-circle me-2"></i>One of your receipts has been reviewed and archived
                 {% else %}
-                    {{ status_updates|length }} receipts have been reviewed and archived
+                    <i class="bi bi-check2-circle me-2"></i>{{ status_updates|length }} receipts have been reviewed and archived
                 {% endif %}
             </div>
         </div>
@@ -189,6 +194,14 @@
     </div>
 {% endblock %}
 
+{% block head %}
+{{ super() }}
+<!-- Add Animate.css for animations -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+<!-- Add Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+{% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script>
@@ -206,13 +219,16 @@ document.querySelectorAll('.accordion-collapse').forEach(collapse => {
     }
 });
 
-// Auto-hide toasts after 3 seconds
+// Auto-hide toasts after 6 seconds with fade out animation
 document.addEventListener('DOMContentLoaded', function() {
     let toasts = document.querySelectorAll('.toast');
     toasts.forEach(toast => {
         setTimeout(() => {
-            toast.classList.remove('show');
-        }, 60000);
+            toast.classList.add('animate__fadeOutRight');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 1000);
+        }, 6000);
     });
 });
 </script>
