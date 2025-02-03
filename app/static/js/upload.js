@@ -1,5 +1,5 @@
 // Exchange rate API integration
-async function getExchangeRate(date, currency) {
+async function getExchangeRate(date, currency, expenseLine) {
     console.log('=== getExchangeRate called ===');
     
     // Format today's date
@@ -13,7 +13,6 @@ async function getExchangeRate(date, currency) {
     console.log(`Using date ${useDate} for ${currency} (original date: ${date})`);
     
     try {
-        // Use date-specific endpoint for historical rates
         const url = `https://api.frankfurter.app/${useDate}?from=EUR&to=${currency}`;
         console.log('Fetching from URL:', url);
         
@@ -25,16 +24,16 @@ async function getExchangeRate(date, currency) {
             const rate = data.rates[currency];
             console.log(`Got rate for ${currency}:`, rate);
             
-            // Show the exchange rate info
-            let conversionInfo = document.querySelector('.exchange-rates');
+            // Show the exchange rate info for this specific line
+            let conversionInfo = expenseLine.querySelector('.line-conversion');
             if (!conversionInfo) {
                 conversionInfo = document.createElement('div');
-                conversionInfo.className = 'exchange-rates small bg-light rounded p-2 mt-2 mb-3';
-                document.querySelector('.expense-lines').insertAdjacentElement('afterend', conversionInfo);
+                conversionInfo.className = 'line-conversion small bg-light rounded p-2 mt-2';
+                expenseLine.appendChild(conversionInfo);
             }
             
             // Calculate the conversion for the current amount
-            const amount = parseFloat(document.querySelector('input[type="number"]').value) || 0;
+            const amount = parseFloat(expenseLine.querySelector('input[type="number"]').value) || 0;
             const convertedAmount = amount / rate;
             
             // If using today's rate for future date, show a notice
@@ -47,12 +46,7 @@ async function getExchangeRate(date, currency) {
                     <span>Exchange Rate (${data.date})</span>
                     ${dateNotice}
                 </div>
-                <div class="d-flex gap-3 text-dark">
-                    <span>1 EUR = ${rate.toFixed(4)} ${currency}</span>
-                    <span class="text-muted">|</span>
-                    <span>1 ${currency} = ${(1/rate).toFixed(4)} EUR</span>
-                </div>
-                <div class="text-primary mt-1">
+                <div class="text-primary">
                     ${amount} ${currency} × ${(1/rate).toFixed(4)} = ${convertedAmount.toFixed(2)} EUR
                 </div>
             `;
@@ -63,16 +57,15 @@ async function getExchangeRate(date, currency) {
     } catch (error) {
         console.error('Error fetching rate:', error);
         
-        // Show error message to user
-        let errorDiv = document.querySelector('.exchange-rate-error');
+        // Show error message in the line
+        let errorDiv = expenseLine.querySelector('.line-conversion-error');
         if (!errorDiv) {
             errorDiv = document.createElement('div');
-            errorDiv.className = 'exchange-rate-error alert alert-danger mt-3';
-            document.querySelector('.expense-lines').insertAdjacentElement('afterend', errorDiv);
+            errorDiv.className = 'line-conversion-error alert alert-danger mt-2';
+            expenseLine.appendChild(errorDiv);
         }
         errorDiv.innerHTML = `
-            <strong>Error getting exchange rate!</strong><br>
-            Please try again or contact support if the problem persists.
+            <small>Error getting exchange rate! Please try again.</small>
         `;
         return null;
     }
@@ -83,13 +76,13 @@ async function calculateTotal() {
     console.log('=== calculateTotal called ===');
     let totalEUR = 0;
     
-    // Clear any previous error messages
-    const errorDiv = document.querySelector('.exchange-rate-error');
-    if (errorDiv) errorDiv.remove();
-    
     const lines = document.querySelectorAll('.expense-line');
     
     for (const line of lines) {
+        // Clear any previous error messages for this line
+        const errorDiv = line.querySelector('.line-conversion-error');
+        if (errorDiv) errorDiv.remove();
+        
         const amountInput = line.querySelector('input[type="number"]');
         const currencySelect = line.querySelector('select');
         const dateInput = line.querySelector('input[type="date"]');
@@ -102,8 +95,11 @@ async function calculateTotal() {
         
         if (currency === 'EUR') {
             totalEUR += amount;
+            // Remove conversion info if exists
+            const conversionInfo = line.querySelector('.line-conversion');
+            if (conversionInfo) conversionInfo.remove();
         } else if (date && amount && currency) {
-            const rate = await getExchangeRate(date, currency);
+            const rate = await getExchangeRate(date, currency, line);
             
             if (rate) {
                 const convertedAmount = amount / rate;
@@ -164,7 +160,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="input-group">
                             <div class="input-group-text p-0">
                                 <select class="form-select border-0 currency-select" style="width: 80px">
-                                    <!-- Options will be populated by currency.js -->
+                                    <option value="EUR">€</option>
+                                    <option value="USD">$</option>
+                                    <option value="GBP">£</option>
+                                    <option value="NOK">kr</option>
                                 </select>
                             </div>
                             <input type="number" class="form-control amount-input" step="0.01" placeholder="0.00">
@@ -185,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         document.querySelector('.expense-lines').insertAdjacentHTML('beforeend', template);
-        calculateTotal(); // Recalculate total after adding new line
+        calculateTotal();
     });
 
     // Delete line button functionality using event delegation
