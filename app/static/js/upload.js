@@ -195,6 +195,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Handle expense type switching
+    const expenseTypes = document.querySelectorAll('input[name="expense-type"]');
+    const travelDetails = document.getElementById('travel-details');
+
+    expenseTypes.forEach(type => {
+        type.addEventListener('change', function() {
+            const commentField = document.getElementById('comment-field');
+            
+            if (this.value === 'travel') {
+                travelDetails.classList.remove('d-none');
+                commentField.classList.add('d-none'); // Hide comment field for travel
+            } else {
+                travelDetails.classList.add('d-none');
+                commentField.classList.remove('d-none'); // Show comment field for other expenses
+            }
+            calculateTotal(); // Recalculate total after switching
+        });
+    });
+
     // Initial calculation
     calculateTotal();
     

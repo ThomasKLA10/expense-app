@@ -14,50 +14,44 @@
     </div>
 </div>
 
-<!-- Travel Details (initially hidden) -->
+<!-- Travel Details -->
 <div id="travel-details" class="mb-4 d-none">
     <div class="row g-3">
-        <div class="col-12">
-            <label for="purpose" class="form-label">Purpose:</label>
-            <input type="text" class="form-control" id="purpose" placeholder="Client workshop">
+        <div class="col-md-12">
+            <input type="text" class="form-control" name="purpose" placeholder="Purpose: Client workshop">
         </div>
         <div class="col-md-6">
-            <label for="travel_from" class="form-label">From:</label>
-            <input type="text" class="form-control" id="travel_from" value="Bonn">
+            <input type="text" class="form-control" name="from" placeholder="From: Bonn">
         </div>
         <div class="col-md-6">
-            <label for="travel_to" class="form-label">To:</label>
-            <input type="text" class="form-control" id="travel_to">
+            <input type="text" class="form-control" name="to" placeholder="To: Oslo">
         </div>
         <div class="col-md-6">
-            <label for="departure_date" class="form-label">Departure:</label>
-            <input type="date" class="form-control" id="departure_date">
+            <input type="date" class="form-control" name="departure">
         </div>
         <div class="col-md-6">
-            <label for="return_date" class="form-label">Return:</label>
-            <input type="date" class="form-control" id="return_date">
+            <input type="date" class="form-control" name="return">
         </div>
     </div>
 </div>
 
-<!-- Comment Field -->
-<div class="mb-4">
+<!-- Comment Field (only shown for other expenses) -->
+<div id="comment-field" class="mb-4">
     <label for="comment" class="form-label">Comment:</label>
     <input type="text" class="form-control" id="comment">
 </div>
 
-<!-- Expenses Section -->
-<h3>Expenses</h3>
-<div class="expense-lines mb-4">
+<!-- Expense Lines Container (shared between both types) -->
+<div class="expense-lines">
     <div class="expense-line mb-3">
         <div class="row g-3 align-items-center">
-            <div class="col-md-2">
+            <div class="col-2">
                 <input type="date" class="form-control" placeholder="Date">
             </div>
-            <div class="col-md-3">
-                <input type="text" class="form-control" placeholder="Lunch">
+            <div class="col-3">
+                <input type="text" class="form-control" placeholder="Description">
             </div>
-            <div class="col-md-3">
+            <div class="col-3">
                 <div class="input-group">
                     <div class="input-group-text p-0">
                         <select class="form-select border-0 currency-select" style="width: 80px">
@@ -70,12 +64,10 @@
                     <input type="number" class="form-control amount-input" step="0.01" placeholder="0.00">
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="input-group">
-                    <input type="file" class="form-control" accept="image/*,.pdf" id="receipt">
-                </div>
+            <div class="col-3">
+                <input type="file" class="form-control" accept="image/*,.pdf">
             </div>
-            <div class="col-md-1">
+            <div class="col-1">
                 <button type="button" class="btn btn-outline-danger delete-line">
                     <i class="bi bi-trash"></i>
                 </button>
