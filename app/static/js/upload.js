@@ -1,320 +1,203 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // File upload handling
-    const fileInput = document.getElementById('receipt');
-    const previewSection = document.getElementById('preview-section');
-    const imagePreview = document.getElementById('image-preview');
-    const pdfPreview = document.getElementById('pdf-preview');
-    const deleteButton = document.getElementById('delete-preview');
-
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            const file = this.files[0];
-            if (file) {
-                previewSection.classList.remove('d-none');
-                
-                if (file.type.startsWith('image/')) {
-                    // Show image preview
-                    imagePreview.classList.remove('d-none');
-                    pdfPreview.classList.add('d-none');
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const previewImage = imagePreview.querySelector('.receipt-image');
-                        previewImage.src = e.target.result;
-                        
-                        // Initialize magnifier after image is loaded
-                        previewImage.onload = function() {
-                            initializeMagnifier();
-                        };
-                    };
-                    reader.readAsDataURL(file);
-                } else if (file.type === 'application/pdf') {
-                    // Handle PDF preview
-                    imagePreview.classList.add('d-none');
-                    pdfPreview.classList.remove('d-none');
-                    pdfPreview.querySelector('.pdf-filename').textContent = file.name;
-                }
-
-                // Send for OCR processing
-                const formData = new FormData();
-                formData.append('receipt', file);
-                
-                fetch('/ocr', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => handleOCRResponse(data))
-                .catch(error => console.error('Error:', error));
-            }
-        });
-    }
-
-    // Delete preview
-    if (deleteButton) {
-        deleteButton.addEventListener('click', function() {
-            fileInput.value = '';
-            previewSection.classList.add('d-none');
-            imagePreview.classList.add('d-none');
-            pdfPreview.classList.add('d-none');
-        });
-    }
-
-    // Amount formatting
-    const amountInput = document.getElementById('amount');
-    if (amountInput) {
-        amountInput.addEventListener('input', function(e) {
-            let value = this.value.replace(/[^\d.]/g, '');
-            let parts = value.split('.');
-            if (parts.length > 2) {
-                parts = [parts[0], parts.slice(1).join('')];
-            }
-            if (parts[0].length > 3) {
-                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            }
-            if (parts[1]) {
-                parts[1] = parts[1].slice(0, 2);
-            }
-            this.value = parts.join('.');
-        });
-    }
-
-    // OCR handling
-    const applyOcrButton = document.getElementById('apply-ocr');
-    const ocrResults = document.getElementById('ocr-results');
+// Exchange rate API integration
+async function getExchangeRate(date, currency) {
+    console.log('=== getExchangeRate called ===');
     
-    function handleOCRResponse(data) {
-        if (data.success) {
-            // Show OCR results section
-            document.getElementById('ocr-results').classList.remove('d-none');
+    // Format today's date
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // If future date, use today's date
+    const selectedDate = new Date(date);
+    const useDate = selectedDate > today ? todayStr : date;
+    
+    console.log(`Using date ${useDate} for ${currency} (original date: ${date})`);
+    
+    try {
+        // Use date-specific endpoint for historical rates
+        const url = `https://api.frankfurter.app/${useDate}?from=EUR&to=${currency}`;
+        console.log('Fetching from URL:', url);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        console.log('Full API Response:', data);
+        
+        if (data && data.rates && data.rates[currency]) {
+            const rate = data.rates[currency];
+            console.log(`Got rate for ${currency}:`, rate);
             
-            // Update all OCR results
-            if (data.amount) {
-                document.getElementById('ocr-amount').textContent = data.amount;
-                document.getElementById('amount').value = data.amount; // Auto-fill amount
+            // Show the exchange rate info
+            let conversionInfo = document.querySelector('.exchange-rates');
+            if (!conversionInfo) {
+                conversionInfo = document.createElement('div');
+                conversionInfo.className = 'exchange-rates small bg-light rounded p-2 mt-2 mb-3';
+                document.querySelector('.expense-lines').insertAdjacentElement('afterend', conversionInfo);
             }
-            if (data.subtotal) {
-                document.getElementById('ocr-subtotal').textContent = data.subtotal;
-            }
-            if (data.tax) {
-                document.getElementById('ocr-tax').textContent = data.tax;
-            }
-            if (data.currency) {
-                document.getElementById('ocr-currency').textContent = data.currency;
-                document.getElementById('currency').value = data.currency; // Auto-fill currency
-            }
-            if (data.date) {
-                document.getElementById('ocr-date').textContent = data.date;
-            }
-            if (data.merchant) {
-                document.getElementById('ocr-merchant').textContent = data.merchant;
-                document.getElementById('purpose').value = data.merchant; // Auto-fill purpose
-            }
+            
+            // Calculate the conversion for the current amount
+            const amount = parseFloat(document.querySelector('input[type="number"]').value) || 0;
+            const convertedAmount = amount / rate;
+            
+            // If using today's rate for future date, show a notice
+            const dateNotice = selectedDate > today 
+                ? `<span class="badge bg-info text-dark">Using today's rate</span>`
+                : '';
+            
+            conversionInfo.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center text-muted mb-1">
+                    <span>Exchange Rate (${data.date})</span>
+                    ${dateNotice}
+                </div>
+                <div class="d-flex gap-3 text-dark">
+                    <span>1 EUR = ${rate.toFixed(4)} ${currency}</span>
+                    <span class="text-muted">|</span>
+                    <span>1 ${currency} = ${(1/rate).toFixed(4)} EUR</span>
+                </div>
+                <div class="text-primary mt-1">
+                    ${amount} ${currency} × ${(1/rate).toFixed(4)} = ${convertedAmount.toFixed(2)} EUR
+                </div>
+            `;
+            
+            return rate;
         }
-    }
-    
-    if (applyOcrButton) {
-        applyOcrButton.addEventListener('click', function() {
-            const amount = document.getElementById('ocr-amount').textContent;
-            if (amount) {
-                document.getElementById('amount').value = amount;
-            }
-            // Add more fields as needed
-        });
-    }
-});
-
-// Magnifier functionality
-function initializeMagnifier() {
-    const zoomContainer = document.querySelector('.receipt-zoom-container');
-    const magnifierView = document.querySelector('.magnifier-view');
-    let isZoomFrozen = false;
-
-    if (!zoomContainer || !magnifierView) return;
-
-    const img = zoomContainer.querySelector('.receipt-image');
-    if (!img) return;
-
-    function updateMagnifier(e) {
-        if (isZoomFrozen) return;
+        throw new Error('Invalid API response');
+    } catch (error) {
+        console.error('Error fetching rate:', error);
         
-        const rect = img.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        const relativeX = x / rect.width;
-        const relativeY = y / rect.height;
-        
-        updateZoomView(relativeX, relativeY);
-    }
-
-    function updateZoomView(relativeX, relativeY) {
-        const zoomFactor = 2;
-        const magnifierWidth = magnifierView.offsetWidth;
-        const magnifierHeight = magnifierView.offsetHeight;
-        
-        const bgX = -((relativeX * img.width * zoomFactor) - (magnifierWidth / 2));
-        const bgY = -((relativeY * img.height * zoomFactor) - (magnifierHeight / 2));
-        
-        magnifierView.style.backgroundImage = `url(${img.src})`;
-        magnifierView.style.backgroundSize = `${img.width * zoomFactor}px ${img.height * zoomFactor}px`;
-        magnifierView.style.backgroundPosition = `${bgX}px ${bgY}px`;
-        magnifierView.classList.add('active');
-    }
-
-    img.addEventListener('mousemove', updateMagnifier);
-    img.addEventListener('mouseleave', () => {
-        if (!isZoomFrozen) {
-            magnifierView.classList.remove('active');
+        // Show error message to user
+        let errorDiv = document.querySelector('.exchange-rate-error');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.className = 'exchange-rate-error alert alert-danger mt-3';
+            document.querySelector('.expense-lines').insertAdjacentElement('afterend', errorDiv);
         }
-    });
-
-    img.addEventListener('click', (e) => {
-        isZoomFrozen = !isZoomFrozen;
-        if (isZoomFrozen) {
-            updateMagnifier(e);
-            magnifierView.classList.add('frozen');
-        } else {
-            magnifierView.classList.remove('frozen');
-        }
-    });
-}
-// Form submission
-const uploadForm = document.querySelector('form');
-if (uploadForm) {
-    uploadForm.addEventListener('submit', function(e) {
-        const amountInput = document.getElementById('amount');
-        const formattedValue = amountInput.value;
-        const plainNumber = formattedValue.replace(/,/g, '');
-        amountInput.value = plainNumber;
-    });
+        errorDiv.innerHTML = `
+            <strong>Error getting exchange rate!</strong><br>
+            Please try again or contact support if the problem persists.
+        `;
+        return null;
+    }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('receipt');
-    const previewSection = document.getElementById('preview-section');
-    const imagePreview = document.getElementById('image-preview');
-    const pdfPreview = document.getElementById('pdf-preview');
-    const pdfFilename = pdfPreview.querySelector('.pdf-filename');
-    const deleteButton = document.getElementById('delete-preview');
-    const travelFields = document.getElementById('travel-fields');
-    const categoryInputs = document.querySelectorAll('input[name="category"]');
-
-    // Handle file selection
-    fileInput.addEventListener('change', function(e) {
-        const file = this.files[0];
-        if (file) {
-            previewSection.classList.remove('d-none');
+// Calculate total
+async function calculateTotal() {
+    console.log('=== calculateTotal called ===');
+    let totalEUR = 0;
+    
+    // Clear any previous error messages
+    const errorDiv = document.querySelector('.exchange-rate-error');
+    if (errorDiv) errorDiv.remove();
+    
+    const lines = document.querySelectorAll('.expense-line');
+    
+    for (const line of lines) {
+        const amountInput = line.querySelector('input[type="number"]');
+        const currencySelect = line.querySelector('select');
+        const dateInput = line.querySelector('input[type="date"]');
+        
+        if (!amountInput || !currencySelect || !dateInput) continue;
+        
+        const amount = parseFloat(amountInput.value) || 0;
+        const currency = currencySelect.value;
+        const date = dateInput.value;
+        
+        if (currency === 'EUR') {
+            totalEUR += amount;
+        } else if (date && amount && currency) {
+            const rate = await getExchangeRate(date, currency);
             
-            if (file.type.startsWith('image/')) {
-                imagePreview.classList.remove('d-none');
-                pdfPreview.classList.add('d-none');
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.querySelector('img').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            } else if (file.type === 'application/pdf') {
-                pdfPreview.classList.remove('d-none');
-                imagePreview.classList.add('d-none');
-                pdfFilename.textContent = file.name;
+            if (rate) {
+                const convertedAmount = amount / rate;
+                totalEUR += convertedAmount;
             }
-        } else {
-            previewSection.classList.add('d-none');
+        }
+    }
+    
+    document.getElementById('total-amount').textContent = `€${totalEUR.toFixed(2)}`;
+}
+
+// Add event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOM Content Loaded ===');
+    
+    // Debug: Log all currency selects
+    const selects = document.querySelectorAll('select');
+    console.log('Found currency selects:', selects.length);
+    
+    // Create a function to handle any input changes
+    const handleInputChange = async (target) => {
+        console.log('Input changed:', target.tagName, target.type, target.value);
+        if (target.matches('input[type="number"], select, input[type="date"]')) {
+            await calculateTotal();
+        }
+    };
+
+    // Listen for changes on any input or select using event delegation
+    document.addEventListener('change', async function(e) {
+        console.log('Change event fired on:', e.target.tagName);
+        await handleInputChange(e.target);
+        
+        // Remove any existing conversion displays when changing currency
+        if (e.target.matches('select')) {
+            const lineConversions = document.querySelectorAll('.line-conversion');
+            lineConversions.forEach(el => el.remove());
+        }
+    });
+    
+    // Listen for input on number fields (for real-time updates)
+    document.addEventListener('input', async function(e) {
+        console.log('Input event fired on:', e.target.tagName);
+        await handleInputChange(e.target);
+    });
+
+    // Add line button functionality
+    document.querySelector('.add-line').addEventListener('click', function() {
+        const template = `
+            <div class="expense-line mb-3">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-2">
+                        <input type="date" class="form-control" placeholder="Date">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" placeholder="Description">
+                    </div>
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <div class="input-group-text p-0">
+                                <select class="form-select border-0 currency-select" style="width: 80px">
+                                    <!-- Options will be populated by currency.js -->
+                                </select>
+                            </div>
+                            <input type="number" class="form-control amount-input" step="0.01" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <input type="file" class="form-control" accept="image/*,.pdf">
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-outline-danger delete-line">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.querySelector('.expense-lines').insertAdjacentHTML('beforeend', template);
+        calculateTotal(); // Recalculate total after adding new line
+    });
+
+    // Delete line button functionality using event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-line')) {
+            e.target.closest('.expense-line').remove();
+            calculateTotal(); // Recalculate total after removing line
         }
     });
 
-    // Handle delete button
-    deleteButton.addEventListener('click', function() {
-        fileInput.value = '';
-        previewSection.classList.add('d-none');
-        imagePreview.querySelector('img').src = '';
-        pdfFilename.textContent = '';
-    });
-
-    // Handle category changes
-    function toggleTravelFields() {
-        const selectedCategory = document.querySelector('input[name="category"]:checked').value;
-        travelFields.style.display = selectedCategory === 'travel' ? 'block' : 'none';
-    }
-
-    categoryInputs.forEach(input => {
-        input.addEventListener('change', toggleTravelFields);
-    });
-
-    // Initial state
-    toggleTravelFields();
-
-    // Add zoom functionality
-    const zoomContainer = document.querySelector('.receipt-zoom-container');
-    const magnifierView = document.querySelector('.magnifier-view');
-    let isZoomFrozen = false;
+    // Initial calculation
+    calculateTotal();
     
-    function updateMagnifier(e) {
-        if (isZoomFrozen) return; // Don't update if frozen
-        
-        const img = zoomContainer.querySelector('.receipt-image');
-        const rect = img.getBoundingClientRect();
-        
-        // Get relative mouse position
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        // Calculate relative position (0 to 1)
-        const relativeX = x / rect.width;
-        const relativeY = y / rect.height;
-        
-        updateZoomView(relativeX, relativeY);
-    }
-    
-    function updateZoomView(relativeX, relativeY) {
-        const img = zoomContainer.querySelector('.receipt-image');
-        const zoomFactor = 2;
-        
-        // Center the zoom by adjusting the background position
-        const magnifierWidth = 300;
-        const magnifierHeight = 300;
-        
-        const bgX = -((relativeX * img.width * zoomFactor) - (magnifierWidth / 2));
-        const bgY = -((relativeY * img.height * zoomFactor) - (magnifierHeight / 2));
-        
-        magnifierView.style.backgroundImage = `url(${img.src})`;
-        magnifierView.style.backgroundSize = `${img.width * zoomFactor}px ${img.height * zoomFactor}px`;
-        magnifierView.style.backgroundPosition = `${bgX}px ${bgY}px`;
-        
-        // Show magnifier panel
-        magnifierView.classList.add('active');
-    }
-    
-    // Add event listeners for zoom
-    if (zoomContainer) {
-        const img = zoomContainer.querySelector('.receipt-image');
-        
-        img.addEventListener('mousemove', updateMagnifier);
-        img.addEventListener('mouseleave', () => {
-            if (!isZoomFrozen) {
-                magnifierView.classList.remove('active');
-            }
-        });
-        
-        // Click to freeze/unfreeze
-        img.addEventListener('click', (e) => {
-            isZoomFrozen = !isZoomFrozen;
-            if (isZoomFrozen) {
-                // Update one last time at click position
-                updateMagnifier(e);
-                magnifierView.classList.add('frozen');
-            } else {
-                magnifierView.classList.remove('frozen');
-            }
-        });
-        
-        // Handle image load
-        img.addEventListener('load', function() {
-            // Initialize magnifier view
-            magnifierView.style.backgroundImage = `url(${this.src})`;
-            magnifierView.style.backgroundSize = `${this.width * 2}px ${this.height * 2}px`;
-        });
-    }
+    console.log('Event listeners added');
 });

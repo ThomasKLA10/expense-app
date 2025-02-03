@@ -1,204 +1,109 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Upload Receipt</h2>
+<h2>The Bonn expenses app</h2>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-{% endwith %}
+<!-- Category Tabs -->
+<div class="mb-4">
+    <div class="btn-group" role="group" aria-label="Expense type">
+        <input type="radio" class="btn-check" name="expense-type" id="other-expenses" value="other" checked>
+        <label class="btn btn-success" for="other-expenses">Other expenses</label>
 
-<form method="POST" enctype="multipart/form-data">
-    <div class="row align-items-center mb-4">
-        <!-- Category Buttons on the left -->
-        <div class="col-md-8">
-            <label class="form-label">Category</label>
-            <div class="btn-group" role="group" aria-label="Receipt category">
-                <input type="radio" class="btn-check" name="category" id="travel" value="travel" checked>
-                <label class="btn btn-outline-primary" for="travel">Travel</label>
+        <input type="radio" class="btn-check" name="expense-type" id="travel-expenses" value="travel">
+        <label class="btn btn-primary" for="travel-expenses">Travel expenses</label>
+    </div>
+</div>
 
-                <input type="radio" class="btn-check" name="category" id="groceries" value="groceries">
-                <label class="btn btn-outline-primary" for="groceries">Groceries</label>
-
-                <input type="radio" class="btn-check" name="category" id="dining" value="dining">
-                <label class="btn btn-outline-primary" for="dining">Dining</label>
-
-                <input type="radio" class="btn-check" name="category" id="other" value="other">
-                <label class="btn btn-outline-primary" for="other">Other</label>
-            </div>
+<!-- Travel Details (initially hidden) -->
+<div id="travel-details" class="mb-4 d-none">
+    <div class="row g-3">
+        <div class="col-12">
+            <label for="purpose" class="form-label">Purpose:</label>
+            <input type="text" class="form-control" id="purpose" placeholder="Client workshop">
         </div>
-
-        <!-- Upload button on the right -->
-        <div class="col-md-4 text-end">
-            <label class="form-label d-block">&nbsp;</label>
-            <label for="receipt" class="btn btn-success btn-lg">
-                Upload Receipt
-                <input type="file" class="d-none" id="receipt" name="receipt" accept="image/*,.pdf" required>
-            </label>
+        <div class="col-md-6">
+            <label for="travel_from" class="form-label">From:</label>
+            <input type="text" class="form-control" id="travel_from" value="Bonn">
+        </div>
+        <div class="col-md-6">
+            <label for="travel_to" class="form-label">To:</label>
+            <input type="text" class="form-control" id="travel_to">
+        </div>
+        <div class="col-md-6">
+            <label for="departure_date" class="form-label">Departure:</label>
+            <input type="date" class="form-control" id="departure_date">
+        </div>
+        <div class="col-md-6">
+            <label for="return_date" class="form-label">Return:</label>
+            <input type="date" class="form-control" id="return_date">
         </div>
     </div>
+</div>
 
-    <!-- Preview section -->
-    <div id="preview-section" class="mb-4 d-none">
-        <div class="card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="card-title mb-0">Receipt Preview</h5>
-                    <button type="button" class="btn btn-outline-danger btn-sm" id="delete-preview">
-                        <i class="bi bi-trash"></i> Delete
-                    </button>
-                </div>
-                <!-- Image preview -->
-                <div id="image-preview" class="text-center d-none">
-                    <div class="receipt-preview-layout">
-                        <div class="magnifier-panel">
-                            <div class="magnifier-view"></div>
-                            <p class="text-muted small mt-2">Hover over the receipt to zoom</p>
-                        </div>
-                        <div class="receipt-zoom-container">
-                            <img src="" alt="Receipt preview" class="receipt-image">
-                        </div>
+<!-- Comment Field -->
+<div class="mb-4">
+    <label for="comment" class="form-label">Comment:</label>
+    <input type="text" class="form-control" id="comment">
+</div>
+
+<!-- Expenses Section -->
+<h3>Expenses</h3>
+<div class="expense-lines mb-4">
+    <div class="expense-line mb-3">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-2">
+                <input type="date" class="form-control" placeholder="Date">
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control" placeholder="Lunch">
+            </div>
+            <div class="col-md-3">
+                <div class="input-group">
+                    <div class="input-group-text p-0">
+                        <select class="form-select border-0 currency-select" style="width: 80px">
+                            <option value="EUR">€</option>
+                            <option value="USD">$</option>
+                            <option value="GBP">£</option>
+                            <option value="NOK">kr</option>
+                        </select>
                     </div>
-                </div>
-                <!-- PDF preview -->
-                <div id="pdf-preview" class="text-center d-none">
-                    <div class="pdf-preview-box">
-                        <i class="bi bi-file-pdf"></i>
-                        <p class="pdf-filename mt-2"></p>
-                    </div>
+                    <input type="number" class="form-control amount-input" step="0.01" placeholder="0.00">
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- File name display -->
-    <div id="file-info" class="alert alert-info d-none mb-4">
-        Selected file: <span id="file-name"></span>
-    </div>
-
-    <!-- Travel-specific fields (initially hidden) -->
-    <div id="travel-fields" class="mb-4">
-        <div class="row g-3">
-            <div class="col-12">
-                <label for="purpose" class="form-label">Purpose</label>
-                <input type="text" class="form-control" id="purpose" name="purpose" placeholder="e.g., Client Workshop">
-            </div>
-            <div class="col-md-6">
-                <label for="travel_from" class="form-label">From</label>
-                <input type="text" class="form-control" id="travel_from" name="travel_from">
-            </div>
-            <div class="col-md-6">
-                <label for="travel_to" class="form-label">To</label>
-                <input type="text" class="form-control" id="travel_to" name="travel_to">
-            </div>
-            <div class="col-md-6">
-                <label for="departure_date" class="form-label">Departure</label>
-                <input type="date" class="form-control" id="departure_date" name="departure_date">
-            </div>
-            <div class="col-md-6">
-                <label for="return_date" class="form-label">Return</label>
-                <input type="date" class="form-control" id="return_date" name="return_date">
-            </div>
-        </div>
-    </div>
-
-    <!-- Amount and Currency in one row -->
-    <div class="row mb-3">
-        <div class="col-auto">
-            <label for="amount" class="form-label">Amount</label>
-            <input type="text" class="form-control" id="amount" name="amount" required pattern="^\d{1,3}(,\d{3})*(\.\d{0,2})?$" placeholder="1,234.56">
-        </div>
-        <div class="col-auto">
-            <label for="currency" class="form-label">Currency</label>
-            <select class="form-select" id="currency" name="currency" required>
-                <option value="EUR">€ EUR</option>
-                <option value="GBP">£ GBP</option>
-                <option value="NOK">kr NOK</option>
-                <option value="USD">$ USD</option>
-            </select>
-        </div>
-    </div>
-
-    <!-- OCR Results Section -->
-    <div id="ocr-results" class="mb-4 d-none">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">OCR Results</h5>
-                <div class="row">
-                    <div class="col-md-6">
-                        <dl class="row">
-                            <dt class="col-sm-4">Total Amount</dt>
-                            <dd class="col-sm-8" id="ocr-amount"></dd>
-                            
-                            <dt class="col-sm-4">Subtotal</dt>
-                            <dd class="col-sm-8" id="ocr-subtotal"></dd>
-                            
-                            <dt class="col-sm-4">Tax</dt>
-                            <dd class="col-sm-8" id="ocr-tax"></dd>
-                            
-                            <dt class="col-sm-4">Date</dt>
-                            <dd class="col-sm-8" id="ocr-date"></dd>
-                            
-                            <dt class="col-sm-4">Merchant</dt>
-                            <dd class="col-sm-8" id="ocr-merchant"></dd>
-                            
-                            <dt class="col-sm-4">Currency</dt>
-                            <dd class="col-sm-8" id="ocr-currency"></dd>
-                        </dl>
-                    </div>
+            <div class="col-md-3">
+                <div class="input-group">
+                    <input type="file" class="form-control" accept="image/*,.pdf" id="receipt">
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div class="mb-4">
-        <label class="form-label">Office Location</label>
-        <input type="hidden" name="office" value="bonn">
-        <div class="alert alert-info">
-            Office location: Bonn
-        </div>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Submit</button>
-</form>
-
-<!-- Add after file preview section -->
-{% if scan_result %}
-<div class="card mb-4">
-    <div class="card-body">
-        <h5 class="card-title">Extracted Information</h5>
-        <div class="row">
-            <div class="col-md-6">
-                <dl class="row">
-                    <dt class="col-sm-4">Amount</dt>
-                    <dd class="col-sm-8">{{ scan_result.amount }}</dd>
-                    
-                    <dt class="col-sm-4">Date</dt>
-                    <dd class="col-sm-8">{{ scan_result.date }}</dd>
-                    
-                    <dt class="col-sm-4">Vendor</dt>
-                    <dd class="col-sm-8">{{ scan_result.vendor }}</dd>
-                </dl>
-            </div>
-            <div class="col-md-6">
-                <button type="button" class="btn btn-primary" id="apply-ocr">
-                    Apply Extracted Data
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger delete-line">
+                    <i class="bi bi-trash"></i>
                 </button>
             </div>
         </div>
     </div>
 </div>
-{% endif %}
 
-<!-- Add spacing at the bottom -->
-<div class="mb-5"></div>
-<div class="mb-5"></div>
+<!-- Add Line Button -->
+<div class="mb-3">
+    <button type="button" class="btn btn-primary add-line">
+        <i class="bi bi-plus"></i> add line
+    </button>
+</div>
+
+<!-- Total -->
+<div class="mb-4">
+    <h4>Total: <span id="total-amount">€0.00</span></h4>
+</div>
+
+<!-- Warning for missing receipts -->
+<div class="alert alert-danger d-none" id="missing-receipts-warning">
+    Attach receipts to all lines to submit!
+</div>
+
+<!-- Submit Button -->
+<button type="submit" class="btn btn-primary" id="submit-form">Submit</button>
+
 {% endblock %}
 
 {% block scripts %}

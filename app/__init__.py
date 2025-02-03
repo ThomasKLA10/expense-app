@@ -93,42 +93,61 @@ def create_app():
     @login_required
     def upload():
         if request.method == 'POST':
-            if 'receipt' not in request.files:
-                return redirect(request.url)
-            
-            # Get office location with default
-            office = request.form.get('office')
-            if not office:
-                return redirect(request.url)
-            
-            file = request.files['receipt']
-            if file.filename == '':
-                return redirect(request.url)
-
-            if file:
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(filepath)
+            try:
+                expense_type = request.form.get('type')
                 
-                receipt = Receipt(
-                    amount=float(request.form['amount']),
-                    currency=request.form['currency'],
-                    category=request.form['category'],
-                    file_path_db=filename,
-                    user_id=current_user.id,
-                    office=request.form['office']
-                )
+                # Get all expense data
+                expenses = []
+                index = 0
+                while f'description{index}' in request.form:
+                    receipt_file = request.files.get(f'receipt{index}')
+                    if not receipt_file:
+                        return jsonify({'success': False, 'error': 'Missing receipt file'})
+                    
+                    # Save receipt file
+                    filename = secure_filename(receipt_file.filename)
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    receipt_file.save(file_path)
+                    
+                    expenses.append({
+                        'description': request.form.get(f'description{index}'),
+                        'amount': float(request.form.get(f'amount{index}', 0)),
+                        'amount_foreign': float(request.form.get(f'amount_foreign{index}', 0) or 0),
+                        'currency': request.form.get(f'currency{index}'),
+                        'type': request.form.get(f'type{index}'),
+                        'file_path': file_path
+                    })
+                    index += 1
                 
-                if request.form['category'] == 'travel':
-                    receipt.purpose = request.form.get('purpose')
-                    receipt.travel_from = request.form.get('travel_from')
-                    receipt.travel_to = request.form.get('travel_to')
-                    receipt.departure_date = request.form.get('departure_date')
-                    receipt.return_date = request.form.get('return_date')
+                # Create receipt records
+                for expense in expenses:
+                    receipt = Receipt(
+                        user_id=current_user.id,
+                        description=expense['description'],
+                        amount=expense['amount'],
+                        amount_foreign=expense['amount_foreign'],
+                        currency=expense['currency'],
+                        category=expense_type,
+                        expense_type=expense['type'],
+                        file_path=expense['file_path'],
+                        status='pending'
+                    )
+                    
+                    if expense_type == 'travel':
+                        receipt.travel_purpose = request.form.get('purpose')
+                        receipt.travel_from = request.form.get('from')
+                        receipt.travel_to = request.form.get('to')
+                        receipt.travel_departure = request.form.get('departure')
+                        receipt.travel_return = request.form.get('return')
+                    
+                    db.session.add(receipt)
                 
-                db.session.add(receipt)
                 db.session.commit()
-                return redirect(url_for('dashboard'))
+                return jsonify({'success': True})
+                
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'success': False, 'error': str(e)})
         
         return render_template('upload.html')
 

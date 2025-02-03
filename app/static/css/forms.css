@@ -236,3 +236,68 @@ form {
     gap: 8px;
     min-width: 120px; /* Ensures minimum width even when badge is removed */
 }
+
+/* Remove button glow and improve aesthetics */
+.btn-check:focus + .btn,
+.btn:focus {
+    box-shadow: none;
+}
+
+/* Style for expense type buttons */
+.btn-group .btn {
+    padding: 0.5rem 1.5rem;
+    border-radius: 4px;
+    margin: 0 4px;
+    transition: all 0.2s ease;
+}
+
+/* Other expenses button */
+.btn-check:checked + .btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-check + .btn-success {
+    background-color: white;
+    border-color: #28a745;
+    color: #28a745;
+}
+
+/* Travel expenses button */
+.btn-check:checked + .btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-check + .btn-primary {
+    background-color: white;
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+/* Table styles */
+.table {
+    --bs-table-striped-bg: rgba(0, 0, 0, 0.02);
+}
+
+.expense-row td {
+    vertical-align: middle;
+}
+
+/* Form control styles */
+.form-control:focus,
+.form-select:focus {
+    box-shadow: none;
+    border-color: #80bdff;
+}
+
+/* Upload button styles */
+.upload-btn {
+    width: 100%;
+    text-align: left;
+    position: relative;
+}
+
+.upload-btn:hover {
+    background-color: #f8f9fa;
+}
