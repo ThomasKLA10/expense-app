@@ -133,8 +133,9 @@ class ReceiptScanner:
             if match:
                 date_str = match.group(1)
                 try:
+                    # Parse and format in European style
                     date_obj = datetime.strptime(date_str, '%d.%m.%y')
-                    return date_obj.strftime('%d.%m.%Y')
+                    return date_obj.strftime('%d.%m.%Y')  # European format
                 except ValueError:
                     continue
         return None

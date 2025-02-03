@@ -41,12 +41,7 @@ class Receipt(db.Model):
 
     @property
     def office_display(self):
-        office_names = {
-            'oslo': 'Oslo',
-            'bonn': 'Bonn',
-            'amsterdam': 'Amsterdam'
-        }
-        return f"Office in {office_names.get(self.office.lower(), self.office)}"
+        return "Office in Bonn"
 
     @classmethod
     def group_receipts(cls, receipts):

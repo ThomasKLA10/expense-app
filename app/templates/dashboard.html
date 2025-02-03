@@ -74,7 +74,7 @@
                                 {% if active_receipts.items %}
                                     {% for receipt in active_receipts.items %}
                                     <tr>
-                                        <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
                                         <td>{{ receipt.amount }} {{ receipt.currency }}</td>
                                         <td>{{ receipt.category }}</td>
                                         <td>
@@ -146,7 +146,7 @@
                                 {% if archived_receipts.items %}
                                     {% for receipt in archived_receipts.items %}
                                     <tr>
-                                        <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
                                         <td>{{ receipt.amount }} {{ receipt.currency }}</td>
                                         <td>{{ receipt.category }}</td>
                                         <td>
