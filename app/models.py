@@ -1,6 +1,6 @@
 from .extensions import db, login_manager
 from flask_login import UserMixin
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os
 
 @login_manager.user_loader
@@ -48,3 +48,10 @@ class Receipt(db.Model):
         if len(receipts) == 1:
             return receipts[0].category
         return "Various"
+
+    @property
+    def is_recently_updated(self):
+        """Check if the receipt was updated in the last 24 hours"""
+        if not self.updated_at:
+            return False
+        return (datetime.now(timezone.utc) - self.updated_at) < timedelta(hours=24)

@@ -174,3 +174,52 @@ form {
 #ocr-results {
     margin-bottom: 40px;
 }
+
+.recent-update {
+    background-color: #f2f6fc;
+    transition: background-color 0.3s ease;
+}
+
+.recent-update:hover {
+    background-color: transparent;
+}
+
+.new-badge {
+    font-size: 0.75rem;
+    background-color: #1a73e8 !important; /* Google blue */
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+    border-radius: 4px;
+}
+
+/* Fixed width for table columns to prevent shifting */
+.archived-receipts-table td {
+    white-space: nowrap;
+}
+
+.archived-receipts-table td:nth-child(1) { /* Date column */
+    width: 120px;
+}
+
+.archived-receipts-table td:nth-child(2) { /* Amount column */
+    width: 150px;
+}
+
+.archived-receipts-table td:nth-child(3) { /* Category column */
+    width: 120px;
+}
+
+.archived-receipts-table td:nth-child(4) { /* Status column */
+    width: 120px;
+}
+
+.archived-receipts-table td:nth-child(5) { /* Actions column */
+    width: 150px;
+}
+
+.actions-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px; /* Ensures minimum width even when badge is removed */
+}

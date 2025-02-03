@@ -132,7 +132,7 @@
                         <h2>Archived Receipts</h2>
                     </div>
                     <div class="card-body">
-                        <table class="table">
+                        <table class="table archived-receipts-table">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -145,24 +145,26 @@
                             <tbody>
                                 {% if archived_receipts.items %}
                                     {% for receipt in archived_receipts.items %}
-                                    <tr>
-                                        <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
+                                    <tr class="{% if receipt.is_recently_updated and not receipt.id|string in viewed_receipts %}recent-update{% endif %}"
+                                        data-receipt-id="{{ receipt.id }}">
+                                        <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
                                         <td>{{ receipt.amount }} {{ receipt.currency }}</td>
                                         <td>{{ receipt.category }}</td>
                                         <td>
-                                            {% if receipt.status == 'pending' %}
-                                                <span class="badge bg-warning">Pending</span>
-                                            {% elif receipt.status == 'approved' %}
+                                            {% if receipt.status == 'approved' %}
                                                 <span class="badge bg-success">Approved</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Rejected</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
+                                            <div class="actions-cell">
+                                                <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                {% if receipt.is_recently_updated and not receipt.id|string in viewed_receipts %}
+                                                    <span class="badge bg-primary new-badge">New</span>
+                                                {% endif %}
+                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -229,6 +231,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 toast.classList.remove('show');
             }, 1000);
         }, 6000);
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Get or initialize viewed receipts from localStorage
+    let viewedReceipts = JSON.parse(localStorage.getItem('viewedReceipts') || '[]');
+    
+    // Remove highlight and badge for already viewed receipts
+    viewedReceipts.forEach(id => {
+        const row = document.querySelector(`tr[data-receipt-id="${id}"]`);
+        if (row) {
+            row.classList.remove('recent-update');
+            const badge = row.querySelector('.new-badge');
+            if (badge) {
+                badge.remove();
+            }
+        }
+    });
+
+    // Handle new interactions
+    const recentUpdates = document.querySelectorAll('.recent-update');
+    recentUpdates.forEach(row => {
+        row.addEventListener('mouseover', function() {
+            const receiptId = this.dataset.receiptId;
+            if (!viewedReceipts.includes(receiptId)) {
+                viewedReceipts.push(receiptId);
+                localStorage.setItem('viewedReceipts', JSON.stringify(viewedReceipts));
+                
+                setTimeout(() => {
+                    row.classList.remove('recent-update');
+                    const newBadge = row.querySelector('.new-badge');
+                    if (newBadge) {
+                        newBadge.remove();
+                    }
+                }, 300);
+            }
+        });
     });
 });
 </script>
