@@ -74,7 +74,7 @@
                                 {% if active_receipts.items %}
                                     {% for receipt in active_receipts.items %}
                                     <tr>
-                                        <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
+                                        <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
                                         <td>{{ receipt.amount }} {{ receipt.currency }}</td>
                                         <td>{{ receipt.category }}</td>
                                         <td>
@@ -127,23 +127,23 @@
                 </div>
 
                 <!-- Archived Receipts -->
-                <div class="card">
+                <div class="card mb-4">
                     <div class="card-header">
-                        <h2>Archived Receipts</h2>
+                        <h3 class="mb-0">Archived Receipts</h3>
                     </div>
                     <div class="card-body">
-                        <table class="table archived-receipts-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Total</th>
-                                    <th>Category</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if archived_receipts.items %}
+                        <div class="table-responsive">
+                            <table class="table archived-receipts-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Category</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                                     {% for receipt in archived_receipts.items %}
                                     <tr class="{% if receipt.is_recently_updated %}recent-update{% endif %}"
                                         data-receipt-id="{{ receipt.id }}"
@@ -154,6 +154,10 @@
                                         <td>
                                             {% if receipt.status == 'approved' %}
                                                 <span class="badge bg-success">Approved</span>
+                                            {% elif receipt.status in ['rejected', 'rejectd'] %}
+                                                <span class="badge bg-danger">Rejected</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ receipt.status }}</span>
                                             {% endif %}
                                         </td>
                                         <td>
@@ -169,27 +173,9 @@
                                         </td>
                                     </tr>
                                     {% endfor %}
-                                {% else %}
-                                <tr><td colspan="5">No archived receipts</td></tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                        
-                        {% if archived_receipts.pages > 1 %}
-                        <div class="d-flex justify-content-center mt-3">
-                            <nav>
-                                <ul class="pagination">
-                                    {% for page in range(1, archived_receipts.pages + 1) %}
-                                    <li class="page-item {% if page == archived_receipts.page %}active{% endif %}">
-                                        <a class="page-link" href="{{ url_for('dashboard', page_archived=page, page_active=request.args.get('page_active', 1)) }}">
-                                            {{ page }}
-                                        </a>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                            </nav>
+                                </tbody>
+                            </table>
                         </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
