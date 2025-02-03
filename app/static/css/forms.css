@@ -1,3 +1,12 @@
+/* Add these rules at the top of your CSS file */
+.js-loaded tr[data-receipt-id] {
+    background-color: transparent !important;
+}
+
+.js-loaded tr[data-receipt-id] .new-badge {
+    display: none !important;
+}
+
 /* Form elements styling */
 #amount {
     width: 120px;
@@ -180,8 +189,12 @@ form {
     transition: background-color 0.3s ease;
 }
 
-.recent-update:hover {
-    background-color: transparent;
+.recent-update[data-viewed="true"] {
+    background-color: transparent !important;
+}
+
+.recent-update[data-viewed="true"] .new-badge {
+    display: none !important;
 }
 
 .new-badge {

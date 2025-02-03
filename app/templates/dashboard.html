@@ -145,8 +145,9 @@
                             <tbody>
                                 {% if archived_receipts.items %}
                                     {% for receipt in archived_receipts.items %}
-                                    <tr class="{% if receipt.is_recently_updated and not receipt.id|string in viewed_receipts %}recent-update{% endif %}"
-                                        data-receipt-id="{{ receipt.id }}">
+                                    <tr class="{% if receipt.is_recently_updated %}recent-update{% endif %}"
+                                        data-receipt-id="{{ receipt.id }}"
+                                        data-viewed="false">
                                         <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
                                         <td>{{ receipt.amount }} {{ receipt.currency }}</td>
                                         <td>{{ receipt.category }}</td>
@@ -161,7 +162,7 @@
                                                    class="btn btn-sm btn-outline-primary">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
-                                                {% if receipt.is_recently_updated and not receipt.id|string in viewed_receipts %}
+                                                {% if receipt.is_recently_updated %}
                                                     <span class="badge bg-primary new-badge">New</span>
                                                 {% endif %}
                                             </div>
@@ -235,18 +236,14 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Get or initialize viewed receipts from localStorage
+    // Get viewed receipts from localStorage
     let viewedReceipts = JSON.parse(localStorage.getItem('viewedReceipts') || '[]');
     
-    // Remove highlight and badge for already viewed receipts
-    viewedReceipts.forEach(id => {
-        const row = document.querySelector(`tr[data-receipt-id="${id}"]`);
-        if (row) {
-            row.classList.remove('recent-update');
-            const badge = row.querySelector('.new-badge');
-            if (badge) {
-                badge.remove();
-            }
+    // Mark already viewed receipts
+    document.querySelectorAll('tr[data-receipt-id]').forEach(row => {
+        const receiptId = row.dataset.receiptId;
+        if (viewedReceipts.includes(receiptId)) {
+            row.dataset.viewed = "true";
         }
     });
 
@@ -260,11 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('viewedReceipts', JSON.stringify(viewedReceipts));
                 
                 setTimeout(() => {
-                    row.classList.remove('recent-update');
-                    const newBadge = row.querySelector('.new-badge');
-                    if (newBadge) {
-                        newBadge.remove();
-                    }
+                    row.dataset.viewed = "true";
                 }, 300);
             }
         });
