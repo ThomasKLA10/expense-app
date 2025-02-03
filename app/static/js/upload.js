@@ -134,6 +134,91 @@ document.addEventListener('input', async function(e) {
     }
 });
 
+// Handle file input changes
+document.addEventListener('change', async function(e) {
+    if (e.target.matches('input[type="file"]')) {
+        console.log('File input changed');
+        const line = e.target.closest('.expense-line');
+        const file = e.target.files[0];
+        if (!file) {
+            console.log('No file selected');
+            return;
+        }
+
+        console.log('Processing file:', file.name);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            console.log('Sending file for OCR processing...');
+            const response = await fetch('/process_receipt', {
+                method: 'POST',
+                body: formData
+            });
+            
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                const text = await response.text();
+                console.error('Server error:', text);
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('OCR Results:', data);
+            
+            if (data.success && data.results) {
+                console.log('Processing OCR results:', data.results);
+                
+                // Update date if found
+                if (data.results.date) {
+                    console.log('Setting date:', data.results.date);
+                    const dateInput = line.querySelector('input[type="date"]');
+                    if (dateInput) {
+                        dateInput.value = data.results.date; // Should be in YYYY-MM-DD format
+                        console.log('Date input updated:', dateInput.value);
+                    }
+                }
+                
+                // Update amount if found
+                if (data.results.total) {
+                    console.log('Setting amount:', data.results.total);
+                    const amountInput = line.querySelector('.amount-input');
+                    amountInput.value = data.results.total;
+                    amountInput.dispatchEvent(new Event('input'));
+                }
+                
+                // Update currency if found
+                if (data.results.currency) {
+                    console.log('Setting currency:', data.results.currency);
+                    const currencySelect = line.querySelector('.currency-select');
+                    currencySelect.value = data.results.currency;
+                    currencySelect.dispatchEvent(new Event('change'));
+                }
+                
+                // Update calculations
+                await updateLineCalculation(line);
+                await calculateTotal();
+            } else {
+                console.log('No results or unsuccessful OCR:', data);
+            }
+        } catch (error) {
+            console.error('Error processing receipt:', error);
+        }
+    }
+});
+
+// Helper function to format date
+function formatDate(dateStr) {
+    // Add date formatting logic based on your receipt date format
+    // This is a simple example assuming DD/MM/YYYY format
+    const parts = dateStr.split(/[/.]/);
+    if (parts.length === 3) {
+        const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+        return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    return '';
+}
+
 // Add event listeners
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== DOM Content Loaded ===');
@@ -236,3 +321,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('Event listeners added');
 });
+
+// Add this function back
+async function updateAllCalculations() {
+    const lines = document.querySelectorAll('.expense-line');
+    for (const line of lines) {
+        await updateLineCalculation(line);
+    }
+    await calculateTotal();
+}

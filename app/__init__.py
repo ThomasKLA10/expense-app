@@ -9,6 +9,12 @@ from werkzeug.utils import secure_filename
 from functools import wraps
 from flask import abort
 from datetime import datetime, timezone
+import logging
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def admin_required(f):
     @wraps(f)
@@ -312,6 +318,57 @@ def create_app():
         db.session.add(receipt)
         db.session.commit()
         return redirect(url_for('dashboard'))
+
+    @app.route('/process_receipt', methods=['POST'])
+    def process_receipt():
+        print("Receipt processing endpoint hit")  # Debug print
+        try:
+            if 'file' not in request.files:
+                print("No file in request")  # Debug print
+                return jsonify({'success': False, 'error': 'No file provided'})
+            
+            file = request.files['file']
+            if file.filename == '':
+                print("No filename")  # Debug print
+                return jsonify({'success': False, 'error': 'No file selected'})
+            
+            if file and allowed_file(file.filename):
+                print(f"Processing file: {file.filename}")  # Debug print
+                
+                # Create uploads directory if it doesn't exist
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                
+                # Save file temporarily
+                temp_path = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_' + secure_filename(file.filename))
+                file.save(temp_path)
+                print(f"File saved to: {temp_path}")  # Debug print
+                
+                try:
+                    # Process the receipt
+                    from .ocr import process_receipt as process_receipt_ocr
+                    results = process_receipt_ocr(temp_path)
+                    print(f"OCR Results: {results}")  # Debug print
+                    
+                    # Clean up temp file
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                    
+                    if results:
+                        return jsonify({'success': True, 'results': results})
+                    else:
+                        return jsonify({'success': False, 'error': 'No data extracted from receipt'})
+                    
+                except Exception as e:
+                    print(f"Error processing receipt: {str(e)}")  # Debug print
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                    return jsonify({'success': False, 'error': str(e)})
+                
+            return jsonify({'success': False, 'error': 'Invalid file type'})
+            
+        except Exception as e:
+            print(f"Server error: {str(e)}")  # Debug print
+            return jsonify({'success': False, 'error': 'Server error occurred'})
 
     # Create database tables
     with app.app_context():
