@@ -2,18 +2,9 @@
 async function getExchangeRate(date, currency, expenseLine) {
     console.log('=== getExchangeRate called ===');
     
-    // Format today's date
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    
-    // If future date, use today's date
-    const selectedDate = new Date(date);
-    const useDate = selectedDate > today ? todayStr : date;
-    
-    console.log(`Using date ${useDate} for ${currency} (original date: ${date})`);
-    
     try {
-        const url = `https://api.frankfurter.app/${useDate}?from=EUR&to=${currency}`;
+        // Use the specific date for historical rates
+        const url = `https://api.frankfurter.app/${date}?from=EUR&to=${currency}`;
         console.log('Fetching from URL:', url);
         
         const response = await fetch(url);
@@ -28,7 +19,7 @@ async function getExchangeRate(date, currency, expenseLine) {
             let conversionInfo = expenseLine.querySelector('.line-conversion');
             if (!conversionInfo) {
                 conversionInfo = document.createElement('div');
-                conversionInfo.className = 'line-conversion small bg-light rounded p-2 mt-2';
+                conversionInfo.className = 'line-conversion small text-muted mt-2';
                 expenseLine.appendChild(conversionInfo);
             }
             
@@ -36,16 +27,8 @@ async function getExchangeRate(date, currency, expenseLine) {
             const amount = parseFloat(expenseLine.querySelector('input[type="number"]').value) || 0;
             const convertedAmount = amount / rate;
             
-            // If using today's rate for future date, show a notice
-            const dateNotice = selectedDate > today 
-                ? `<span class="badge bg-info text-dark">Using today's rate</span>`
-                : '';
-            
             conversionInfo.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center text-muted mb-1">
-                    <span>Exchange Rate (${data.date})</span>
-                    ${dateNotice}
-                </div>
+                <div>Exchange Rate (${date})</div>
                 <div class="text-primary">
                     ${amount} ${currency} × ${(1/rate).toFixed(4)} = ${convertedAmount.toFixed(2)} EUR
                 </div>
@@ -56,17 +39,7 @@ async function getExchangeRate(date, currency, expenseLine) {
         throw new Error('Invalid API response');
     } catch (error) {
         console.error('Error fetching rate:', error);
-        
-        // Show error message in the line
-        let errorDiv = expenseLine.querySelector('.line-conversion-error');
-        if (!errorDiv) {
-            errorDiv = document.createElement('div');
-            errorDiv.className = 'line-conversion-error alert alert-danger mt-2';
-            expenseLine.appendChild(errorDiv);
-        }
-        errorDiv.innerHTML = `
-            <small>Error getting exchange rate! Please try again.</small>
-        `;
+        // Silently fail and return null - no error message displayed
         return null;
     }
 }
@@ -79,37 +52,87 @@ async function calculateTotal() {
     const lines = document.querySelectorAll('.expense-line');
     
     for (const line of lines) {
-        // Clear any previous error messages for this line
-        const errorDiv = line.querySelector('.line-conversion-error');
-        if (errorDiv) errorDiv.remove();
-        
-        const amountInput = line.querySelector('input[type="number"]');
-        const currencySelect = line.querySelector('select');
+        const amountInput = line.querySelector('.amount-input');
+        const currencySelect = line.querySelector('.currency-select');
         const dateInput = line.querySelector('input[type="date"]');
         
         if (!amountInput || !currencySelect || !dateInput) continue;
         
         const amount = parseFloat(amountInput.value) || 0;
         const currency = currencySelect.value;
-        const date = dateInput.value;
+        const date = dateInput.value || new Date().toISOString().split('T')[0];
         
         if (currency === 'EUR') {
             totalEUR += amount;
-            // Remove conversion info if exists
+            console.log(`Adding EUR amount: ${amount}`);
+        } else if (amount && currency) {
+            // Get the conversion info div to extract the converted amount
             const conversionInfo = line.querySelector('.line-conversion');
-            if (conversionInfo) conversionInfo.remove();
-        } else if (date && amount && currency) {
-            const rate = await getExchangeRate(date, currency, line);
-            
-            if (rate) {
-                const convertedAmount = amount / rate;
+            if (conversionInfo) {
+                const conversionText = conversionInfo.querySelector('.text-primary').textContent;
+                const convertedAmount = parseFloat(conversionText.split('=')[1].split('EUR')[0]);
                 totalEUR += convertedAmount;
+                console.log(`Adding converted amount: ${convertedAmount} EUR (from ${amount} ${currency})`);
+            } else {
+                // If no conversion info yet, get the rate and calculate
+                const rate = await getExchangeRate(date, currency, line);
+                if (rate) {
+                    const convertedAmount = amount / rate;
+                    totalEUR += convertedAmount;
+                    console.log(`Adding new converted amount: ${convertedAmount} EUR (from ${amount} ${currency})`);
+                }
             }
         }
     }
     
+    console.log(`Total EUR: ${totalEUR}`);
     document.getElementById('total-amount').textContent = `€${totalEUR.toFixed(2)}`;
 }
+
+// Handle date changes using event delegation
+document.addEventListener('change', async function(e) {
+    if (e.target.matches('input[type="date"]')) {
+        // Only update the specific line where date changed
+        const line = e.target.closest('.expense-line');
+        await updateLineCalculation(line);
+        await calculateTotal();
+    }
+});
+
+// Function to update a single line's calculation
+async function updateLineCalculation(line) {
+    const amountInput = line.querySelector('.amount-input');
+    const currencySelect = line.querySelector('.currency-select');
+    const dateInput = line.querySelector('input[type="date"]');
+    
+    if (amountInput.value && currencySelect.value) {
+        await getExchangeRate(
+            dateInput.value || new Date().toISOString().split('T')[0],
+            currencySelect.value,
+            line
+        );
+    }
+}
+
+// Handle currency changes using event delegation
+document.addEventListener('change', async function(e) {
+    if (e.target.classList.contains('currency-select')) {
+        // Only update the specific line where currency changed
+        const line = e.target.closest('.expense-line');
+        await updateLineCalculation(line);
+        await calculateTotal();
+    }
+});
+
+// Handle amount input changes using event delegation
+document.addEventListener('input', async function(e) {
+    if (e.target.classList.contains('amount-input')) {
+        // Only update the specific line where amount changed
+        const line = e.target.closest('.expense-line');
+        await updateLineCalculation(line);
+        await calculateTotal();
+    }
+});
 
 // Add event listeners
 document.addEventListener('DOMContentLoaded', function() {
@@ -131,12 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('change', async function(e) {
         console.log('Change event fired on:', e.target.tagName);
         await handleInputChange(e.target);
-        
-        // Remove any existing conversion displays when changing currency
-        if (e.target.matches('select')) {
-            const lineConversions = document.querySelectorAll('.line-conversion');
-            lineConversions.forEach(el => el.remove());
-        }
     });
     
     // Listen for input on number fields (for real-time updates)
@@ -184,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         document.querySelector('.expense-lines').insertAdjacentHTML('beforeend', template);
-        calculateTotal();
+        setTimeout(updateAllCalculations, 0);
     });
 
     // Delete line button functionality using event delegation
@@ -215,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initial calculation
-    calculateTotal();
+    updateAllCalculations();
     
     console.log('Event listeners added');
 });
