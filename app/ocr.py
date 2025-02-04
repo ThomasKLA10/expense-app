@@ -9,16 +9,31 @@ import os
 class ReceiptScanner:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
+        # Set logging level to DEBUG
+        self.logger.setLevel(logging.DEBUG)
+        # Add console handler if not already present
+        if not self.logger.handlers:
+            console_handler = logging.StreamHandler()
+            console_handler.setLevel(logging.DEBUG)
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            console_handler.setFormatter(formatter)
+            self.logger.addHandler(console_handler)
 
     def process_receipt(self, image_path):
         try:
+            # Log the start of processing
+            self.logger.debug(f"Starting to process receipt: {image_path}")
+
             # Handle PDF files
             if image_path.lower().endswith('.pdf'):
+                # Log PDF processing
+                self.logger.debug("Processing PDF file")
                 # Convert PDF to image
                 pages = convert_from_path(image_path)
                 if pages:
                     # Save first page as temporary image
                     temp_image_path = image_path.replace('.pdf', '_temp.jpg')
+                    self.logger.debug(f"Converting PDF to temporary image: {temp_image_path}")
                     pages[0].save(temp_image_path, 'JPEG')
                     # Process the image
                     result = self._process_image(temp_image_path)
@@ -30,20 +45,33 @@ class ReceiptScanner:
                 return self._process_image(image_path)
                 
         except Exception as e:
-            self.logger.error(f"Error in process_receipt: {str(e)}")
+            self.logger.error(f"Error in process_receipt: {str(e)}", exc_info=True)
             raise
 
     def _process_image(self, image_path):
         try:
-            self.logger.info(f"Processing receipt at path: {image_path}")
+            self.logger.debug(f"Processing image at path: {image_path}")
             
+            # Extract text with Tesseract
             text = pytesseract.image_to_string(
                 Image.open(image_path), 
                 lang='eng+deu+nor+spa+nld'
             )
-            self.logger.info(f"OCR Text extracted: {text}")
+            
+            # Log the raw OCR output
+            self.logger.debug("=== RAW OCR OUTPUT START ===")
+            self.logger.debug(text)
+            self.logger.debug("=== RAW OCR OUTPUT END ===")
+            
+            # Log each line separately for better analysis
+            self.logger.debug("=== OCR OUTPUT LINE BY LINE ===")
+            for line in text.split('\n'):
+                if line.strip():  # Only log non-empty lines
+                    self.logger.debug(f"LINE: {line}")
+            self.logger.debug("=== OCR OUTPUT LINE BY LINE END ===")
             
             text_lower = text.lower()
+            self.logger.debug("Processing lowercase text")
             
             result = {
                 'total': None,
