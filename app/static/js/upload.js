@@ -389,6 +389,118 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Prevent default drag behaviors on the entire document
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.addEventListener(eventName, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
+
+    // Add drag and drop zone
+    const dropZone = document.createElement('div');
+    dropZone.id = 'drop-zone';
+    dropZone.className = 'drop-zone mb-4';
+    dropZone.innerHTML = `
+        <div class="drop-zone-content">
+            <i class="bi bi-cloud-upload"></i>
+            <p>Drag and drop receipt files here</p>
+            <p class="text-muted small">or click the "Add Line" button to add manually</p>
+        </div>
+    `;
+
+    // Insert drop zone before the expense lines container
+    const expenseLinesContainer = document.querySelector('.expense-lines');
+    if (expenseLinesContainer) {
+        expenseLinesContainer.parentNode.insertBefore(dropZone, expenseLinesContainer);
+        console.log('Drop zone created and inserted');
+
+        // Handle drag and drop events specifically for the drop zone
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('drop-zone-active');
+                console.log('Drag event:', eventName);
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('drop-zone-active');
+                console.log('Drag event:', eventName);
+            });
+        });
+
+        // Handle dropped files
+        dropZone.addEventListener('drop', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const files = Array.from(e.dataTransfer.files);
+            console.log('Files dropped:', files);
+            
+            // Process files sequentially
+            for (const file of files) {
+                if (allowed_file(file.name)) {
+                    console.log('Processing file:', file.name);
+                    
+                    // Create new line and wait for it to be processed before moving to next file
+                    await new Promise(resolve => {
+                        const addLineBtn = document.querySelector('.add-line');
+                        if (addLineBtn) {
+                            console.log('Clicking add line button');
+                            addLineBtn.click();
+                            
+                            setTimeout(async () => {
+                                const newLine = document.querySelector('.expense-line:last-child');
+                                if (newLine) {
+                                    const fileInput = newLine.querySelector('input[type="file"]');
+                                    if (fileInput) {
+                                        console.log('Setting file in input');
+                                        const dataTransfer = new DataTransfer();
+                                        dataTransfer.items.add(file);
+                                        fileInput.files = dataTransfer.files;
+                                        
+                                        // Trigger change event and wait for it to complete
+                                        const event = new Event('change', { bubbles: true });
+                                        fileInput.dispatchEvent(event);
+                                        
+                                        // Wait for the OCR processing to complete
+                                        await new Promise(r => setTimeout(r, 1000));
+                                        resolve();
+                                    } else {
+                                        console.log('No file input found in new line');
+                                        resolve();
+                                    }
+                                } else {
+                                    console.log('No new line created');
+                                    resolve();
+                                }
+                            }, 100);
+                        } else {
+                            console.log('Add line button not found');
+                            resolve();
+                        }
+                    });
+                } else {
+                    console.warn('Invalid file type:', file.name);
+                }
+            }
+        });
+    } else {
+        console.log('Expense lines container not found');
+    }
+
+    // Helper function to check allowed file types
+    function allowed_file(filename) {
+        const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'gif'];
+        const extension = filename.split('.').pop().toLowerCase();
+        return allowedExtensions.includes(extension);
+    }
+
     // Initial calculation
     updateAllCalculations();
     

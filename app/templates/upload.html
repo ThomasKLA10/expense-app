@@ -43,47 +43,6 @@
 
 <!-- Expense Lines Container (shared between both types) -->
 <div class="expense-lines">
-    <div class="expense-line mb-3">
-        <div class="row g-3 align-items-center">
-            <div class="col-2">
-                <input type="date" class="form-control" placeholder="Date">
-            </div>
-            <div class="col-3">
-                <input type="text" class="form-control" placeholder="Description">
-            </div>
-            <div class="col-3">
-                <div class="input-group">
-                    <div class="input-group-text p-0">
-                        <select class="form-select border-0 currency-select" style="width: 80px">
-                            <option value="EUR">€</option>
-                            <option value="USD">$</option>
-                            <option value="GBP">£</option>
-                            <option value="NOK">kr</option>
-                        </select>
-                    </div>
-                    <input type="number" class="form-control amount-input" step="0.01" placeholder="0.00">
-                </div>
-                <div class="calculator">
-                    <div class="line-conversion">
-                        <small class="conversion-text"></small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-3">
-                <div class="input-group">
-                    <input type="file" class="form-control" accept="image/*,.pdf">
-                    <button type="button" class="btn btn-outline-secondary view-receipt" disabled>
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="col-1">
-                <button type="button" class="btn btn-outline-danger delete-line">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Add Line Button -->
