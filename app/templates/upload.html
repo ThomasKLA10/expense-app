@@ -70,7 +70,12 @@
                 </div>
             </div>
             <div class="col-3">
-                <input type="file" class="form-control" accept="image/*,.pdf">
+                <div class="input-group">
+                    <input type="file" class="form-control" accept="image/*,.pdf">
+                    <button type="button" class="btn btn-outline-secondary view-receipt" disabled>
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
             </div>
             <div class="col-1">
                 <button type="button" class="btn btn-outline-danger delete-line">
@@ -100,6 +105,23 @@
 
 <!-- Submit Button -->
 <button type="submit" class="btn btn-primary" id="submit-form">Submit</button>
+
+<!-- Add this modal at the end of the body -->
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Receipt Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="receipt-preview" class="receipt-preview">
+                    <!-- Content will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 

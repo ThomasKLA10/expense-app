@@ -136,15 +136,22 @@ document.addEventListener('input', async function(e) {
 // Handle file input changes
 document.addEventListener('change', async function(e) {
     if (e.target.matches('input[type="file"]')) {
-        console.log('File input changed');
         const line = e.target.closest('.expense-line');
+        const viewButton = line.querySelector('.view-receipt');
         const file = e.target.files[0];
-        if (!file) {
-            console.log('No file selected');
-            return;
+        
+        // Enable/disable view button based on file selection
+        viewButton.disabled = !file;
+        
+        // Store the file itself instead of the URL
+        viewButton.dataset.fileIndex = line.dataset.fileIndex || Date.now().toString();
+        if (file) {
+            // Store the file in a map using the index
+            if (!window.uploadedFiles) window.uploadedFiles = new Map();
+            window.uploadedFiles.set(viewButton.dataset.fileIndex, file);
         }
-
-        console.log('Processing file:', file.name);
+        
+        console.log('Sending file for OCR processing...');
         const formData = new FormData();
         formData.append('file', file);
 
@@ -222,6 +229,44 @@ document.addEventListener('change', async function(e) {
     }
 });
 
+// Add click handler for view receipt button
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.view-receipt')) {
+        const button = e.target.closest('.view-receipt');
+        const fileIndex = button.dataset.fileIndex;
+        const file = window.uploadedFiles.get(fileIndex);
+        
+        if (!file) return;
+        
+        const fileUrl = URL.createObjectURL(file);
+        const fileType = file.type;
+        const preview = document.getElementById('receipt-preview');
+        
+        // Clear previous content
+        preview.innerHTML = '';
+        
+        if (fileType.startsWith('image/')) {
+            // Handle image files
+            const img = document.createElement('img');
+            img.src = fileUrl;
+            img.classList.add('img-fluid');
+            preview.appendChild(img);
+        } else if (fileType === 'application/pdf') {
+            // Handle PDF files
+            const iframe = document.createElement('iframe');
+            iframe.src = fileUrl;
+            preview.appendChild(iframe);
+        }
+        
+        // Store the current URL to revoke it later
+        preview.dataset.currentUrl = fileUrl;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+        modal.show();
+    }
+});
+
 // Helper function to format date
 function formatDate(dateStr) {
     // Add date formatting logic based on your receipt date format
@@ -294,6 +339,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-3">
                         <div class="input-group">
                             <input type="file" class="form-control" accept="image/*,.pdf">
+                            <button type="button" class="btn btn-outline-secondary view-receipt" disabled>
+                                <i class="bi bi-eye"></i>
+                            </button>
                         </div>
                     </div>
                     <div class="col-md-1">
@@ -312,8 +360,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Delete line button functionality using event delegation
     document.addEventListener('click', function(e) {
         if (e.target.closest('.delete-line')) {
-            e.target.closest('.expense-line').remove();
-            calculateTotal(); // Recalculate total after removing line
+            const line = e.target.closest('.expense-line');
+            const viewButton = line.querySelector('.view-receipt');
+            if (viewButton && viewButton.dataset.fileIndex) {
+                window.uploadedFiles.delete(viewButton.dataset.fileIndex);
+            }
+            line.remove();
+            calculateTotal();
         }
     });
 
@@ -361,3 +414,16 @@ async function handleInputChange(target) {
         await calculateTotal();
     }
 }
+
+// Clean up object URLs when modal is hidden
+document.getElementById('receiptModal').addEventListener('hidden.bs.modal', function () {
+    const preview = document.getElementById('receipt-preview');
+    const currentUrl = preview.dataset.currentUrl;
+    
+    if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+    }
+    
+    preview.innerHTML = '';
+    preview.dataset.currentUrl = '';
+});
