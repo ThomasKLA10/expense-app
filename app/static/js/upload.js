@@ -47,7 +47,7 @@ async function calculateTotal() {
                 console.log(`Adding EUR amount: ${amount}`);
             } else {
                 const rate = await getExchangeRate(currency, 'EUR', date);
-                const convertedAmount = amount * (1/rate);  // Fixed conversion calculation
+                const convertedAmount = amount * rate;  // Remove the 1/rate, use rate directly
                 totalEUR += convertedAmount;
                 console.log(`Adding converted amount: ${convertedAmount} EUR (from ${amount} ${currency})`);
             }
@@ -79,12 +79,12 @@ async function updateLineCalculation(line) {
         const date = dateInput.value || new Date().toISOString().split('T')[0];
         const rate = await getExchangeRate(currencySelect.value, 'EUR', date);
         const amount = parseFloat(amountInput.value);
-        const convertedAmount = (amount / rate).toFixed(2);
+        const convertedAmount = (amount * rate).toFixed(2);
         const conversionText = line.querySelector('.conversion-text');
         if (conversionText) {
             conversionText.innerHTML = `
-                <span>Historic rate: 1 ${currencySelect.value} = ${(1/rate).toFixed(4)} EUR</span>
-                <span class="calculation">${amount} × ${(1/rate).toFixed(4)} = ${convertedAmount} EUR</span>
+                <span>Historic rate: 1 ${currencySelect.value} = ${rate.toFixed(4)} EUR</span>
+                <span class="calculation">${amount} × ${rate.toFixed(4)} = ${convertedAmount} EUR</span>
             `;
         }
         calculator.style.display = 'block';
