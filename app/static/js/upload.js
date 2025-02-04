@@ -1,46 +1,25 @@
 // Exchange rate API integration
-async function getExchangeRate(date, currency, expenseLine) {
-    console.log('=== getExchangeRate called ===');
-    
+async function getExchangeRate(from, to, date) {
     try {
-        // Use the specific date for historical rates
-        const url = `https://api.frankfurter.app/${date}?from=EUR&to=${currency}`;
+        // If same currency, return 1
+        if (from === to) {
+            return 1;
+        }
+        
+        const url = `https://api.frankfurter.app/${date}?from=${from}&to=${to}`;
         console.log('Fetching from URL:', url);
         
         const response = await fetch(url);
         const data = await response.json();
-        console.log('Full API Response:', data);
         
-        if (data && data.rates && data.rates[currency]) {
-            const rate = data.rates[currency];
-            console.log(`Got rate for ${currency}:`, rate);
-            
-            // Show the exchange rate info for this specific line
-            let conversionInfo = expenseLine.querySelector('.line-conversion');
-            if (!conversionInfo) {
-                conversionInfo = document.createElement('div');
-                conversionInfo.className = 'line-conversion small text-muted mt-2';
-                expenseLine.appendChild(conversionInfo);
-            }
-            
-            // Calculate the conversion for the current amount
-            const amount = parseFloat(expenseLine.querySelector('input[type="number"]').value) || 0;
-            const convertedAmount = amount / rate;
-            
-            conversionInfo.innerHTML = `
-                <div>Exchange Rate (${date})</div>
-                <div class="text-primary">
-                    ${amount} ${currency} × ${(1/rate).toFixed(4)} = ${convertedAmount.toFixed(2)} EUR
-                </div>
-            `;
-            
-            return rate;
+        if (data.rates && data.rates[to]) {
+            return data.rates[to];
+        } else {
+            throw new Error('Invalid API response');
         }
-        throw new Error('Invalid API response');
     } catch (error) {
         console.error('Error fetching rate:', error);
-        // Silently fail and return null - no error message displayed
-        return null;
+        return 1; // Fallback to 1:1 rate
     }
 }
 
@@ -62,25 +41,15 @@ async function calculateTotal() {
         const currency = currencySelect.value;
         const date = dateInput.value || new Date().toISOString().split('T')[0];
         
-        if (currency === 'EUR') {
-            totalEUR += amount;
-            console.log(`Adding EUR amount: ${amount}`);
-        } else if (amount && currency) {
-            // Get the conversion info div to extract the converted amount
-            const conversionInfo = line.querySelector('.line-conversion');
-            if (conversionInfo) {
-                const conversionText = conversionInfo.querySelector('.text-primary').textContent;
-                const convertedAmount = parseFloat(conversionText.split('=')[1].split('EUR')[0]);
+        if (amount) {  // Only process if there's an amount
+            if (currency === 'EUR') {
+                totalEUR += amount;
+                console.log(`Adding EUR amount: ${amount}`);
+            } else {
+                const rate = await getExchangeRate(currency, 'EUR', date);
+                const convertedAmount = amount * (1/rate);  // Fixed conversion calculation
                 totalEUR += convertedAmount;
                 console.log(`Adding converted amount: ${convertedAmount} EUR (from ${amount} ${currency})`);
-            } else {
-                // If no conversion info yet, get the rate and calculate
-                const rate = await getExchangeRate(date, currency, line);
-                if (rate) {
-                    const convertedAmount = amount / rate;
-                    totalEUR += convertedAmount;
-                    console.log(`Adding new converted amount: ${convertedAmount} EUR (from ${amount} ${currency})`);
-                }
             }
         }
     }
@@ -104,21 +73,51 @@ async function updateLineCalculation(line) {
     const amountInput = line.querySelector('.amount-input');
     const currencySelect = line.querySelector('.currency-select');
     const dateInput = line.querySelector('input[type="date"]');
+    const calculator = line.querySelector('.calculator');
     
-    if (amountInput.value && currencySelect.value) {
-        await getExchangeRate(
-            dateInput.value || new Date().toISOString().split('T')[0],
-            currencySelect.value,
-            line
-        );
+    if (amountInput.value && currencySelect.value !== 'EUR') {
+        const date = dateInput.value || new Date().toISOString().split('T')[0];
+        const rate = await getExchangeRate(currencySelect.value, 'EUR', date);
+        const amount = parseFloat(amountInput.value);
+        const convertedAmount = (amount / rate).toFixed(2);
+        const conversionText = line.querySelector('.conversion-text');
+        if (conversionText) {
+            conversionText.innerHTML = `
+                <span>Historic rate: 1 ${currencySelect.value} = ${(1/rate).toFixed(4)} EUR</span>
+                <span class="calculation">${amount} × ${(1/rate).toFixed(4)} = ${convertedAmount} EUR</span>
+            `;
+        }
+        calculator.style.display = 'block';
+    } else {
+        calculator.style.display = 'none';
     }
 }
 
 // Handle currency changes using event delegation
 document.addEventListener('change', async function(e) {
     if (e.target.classList.contains('currency-select')) {
-        // Only update the specific line where currency changed
         const line = e.target.closest('.expense-line');
+        const calculator = line.querySelector('.calculator');
+        const amountInput = line.querySelector('.amount-input');
+        const dateInput = line.querySelector('input[type="date"]');
+        
+        // Show/hide calculator based on currency
+        if (calculator) {
+            calculator.style.display = e.target.value !== 'EUR' ? 'block' : 'none';
+            
+            // Update conversion display if amount exists
+            if (amountInput.value && e.target.value !== 'EUR') {
+                const date = dateInput.value || new Date().toISOString().split('T')[0];
+                const rate = await getExchangeRate(e.target.value, 'EUR', date);
+                const amount = parseFloat(amountInput.value);
+                const convertedAmount = (amount / rate).toFixed(2);
+                const conversionText = line.querySelector('.conversion-text');
+                if (conversionText) {
+                    conversionText.textContent = `${amount} ${e.target.value} = ${convertedAmount} EUR`;
+                }
+            }
+        }
+        
         await updateLineCalculation(line);
         await calculateTotal();
     }
@@ -157,49 +156,65 @@ document.addEventListener('change', async function(e) {
             });
             
             console.log('Response status:', response.status);
-            if (!response.ok) {
-                const text = await response.text();
-                console.error('Server error:', text);
-                return;
-            }
-            
             const data = await response.json();
             console.log('OCR Results:', data);
             
-            if (data.success && data.results) {
-                console.log('Processing OCR results:', data.results);
-                
+            // Check if we have results directly (no success wrapper)
+            const results = data.results || data;
+            console.log('Processing results:', results);
+            
+            if (results) {
                 // Update date if found
-                if (data.results.date) {
-                    console.log('Setting date:', data.results.date);
+                if (results.date) {
+                    console.log('Setting date:', results.date);
                     const dateInput = line.querySelector('input[type="date"]');
                     if (dateInput) {
-                        dateInput.value = data.results.date; // Should be in YYYY-MM-DD format
-                        console.log('Date input updated:', dateInput.value);
+                        dateInput.value = results.date;
+                        dateInput.dispatchEvent(new Event('change'));
                     }
                 }
                 
                 // Update amount if found
-                if (data.results.total) {
-                    console.log('Setting amount:', data.results.total);
+                if (results.total) {
+                    console.log('Setting amount:', results.total);
                     const amountInput = line.querySelector('.amount-input');
-                    amountInput.value = data.results.total;
-                    amountInput.dispatchEvent(new Event('input'));
+                    if (amountInput) {
+                        amountInput.value = results.total;
+                        amountInput.dispatchEvent(new Event('input'));
+                    }
                 }
                 
                 // Update currency if found
-                if (data.results.currency) {
-                    console.log('Setting currency:', data.results.currency);
+                if (results.currency) {
+                    console.log('Setting currency:', results.currency);
                     const currencySelect = line.querySelector('.currency-select');
-                    currencySelect.value = data.results.currency;
-                    currencySelect.dispatchEvent(new Event('change'));
+                    if (currencySelect) {
+                        currencySelect.value = results.currency;
+                        currencySelect.dispatchEvent(new Event('change'));
+                        
+                        // Show calculator for non-EUR currencies
+                        const calculator = line.querySelector('.calculator');
+                        if (calculator) {
+                            calculator.style.display = results.currency !== 'EUR' ? 'block' : 'none';
+                            
+                            // Update conversion display
+                            if (results.total && results.currency !== 'EUR') {
+                                const rate = await getExchangeRate(results.currency, 'EUR', results.date || new Date().toISOString().split('T')[0]);
+                                const convertedAmount = (results.total / rate).toFixed(2);
+                                const conversionText = calculator.querySelector('.text-primary');
+                                if (conversionText) {
+                                    conversionText.textContent = `${results.total} ${results.currency} = ${convertedAmount} EUR`;
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 // Update calculations
                 await updateLineCalculation(line);
                 await calculateTotal();
             } else {
-                console.log('No results or unsuccessful OCR:', data);
+                console.log('No OCR results found');
             }
         } catch (error) {
             console.error('Error processing receipt:', error);
@@ -270,6 +285,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <input type="number" class="form-control amount-input" step="0.01" placeholder="0.00">
                         </div>
+                        <div class="calculator">
+                            <div class="line-conversion">
+                                <small class="text-primary conversion-text"></small>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <div class="input-group">
@@ -329,4 +349,15 @@ async function updateAllCalculations() {
         await updateLineCalculation(line);
     }
     await calculateTotal();
+}
+
+// Make sure to call calculateTotal whenever values change
+async function handleInputChange(target) {
+    if (!target) return;
+    
+    const line = target.closest('.expense-line');
+    if (line) {
+        await updateLineCalculation(line);
+        await calculateTotal();
+    }
 }

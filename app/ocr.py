@@ -1,351 +1,147 @@
 import logging
 import re
-from datetime import datetime
-from PIL import Image, ExifTags
+from PIL import Image
 import pytesseract
-from decimal import Decimal
+from datetime import datetime
+from pdf2image import convert_from_path
 import os
 
-# Configure Tesseract path if needed
-if os.name == 'nt':  # Windows
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
-logger = logging.getLogger(__name__)
-
 class ReceiptScanner:
-    def scan_receipt(self, image_file):
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+
+    def process_receipt(self, image_path):
         try:
-            logger.info("Starting OCR scan...")
-            image = Image.open(image_file)
+            # Handle PDF files
+            if image_path.lower().endswith('.pdf'):
+                # Convert PDF to image
+                pages = convert_from_path(image_path)
+                if pages:
+                    # Save first page as temporary image
+                    temp_image_path = image_path.replace('.pdf', '_temp.jpg')
+                    pages[0].save(temp_image_path, 'JPEG')
+                    # Process the image
+                    result = self._process_image(temp_image_path)
+                    # Clean up
+                    if os.path.exists(temp_image_path):
+                        os.remove(temp_image_path)
+                    return result
+            else:
+                return self._process_image(image_path)
+                
+        except Exception as e:
+            self.logger.error(f"Error in process_receipt: {str(e)}")
+            raise
+
+    def _process_image(self, image_path):
+        try:
+            self.logger.info(f"Processing receipt at path: {image_path}")
             
-            # Auto-rotate based on EXIF
-            try:
-                for orientation in ExifTags.TAGS.keys():
-                    if ExifTags.TAGS[orientation] == 'Orientation':
-                        break
-                exif = dict(image._getexif().items())
-                if exif[orientation] == 3:
-                    image = image.rotate(180, expand=True)
-                elif exif[orientation] == 6:
-                    image = image.rotate(270, expand=True)
-                elif exif[orientation] == 8:
-                    image = image.rotate(90, expand=True)
-            except (AttributeError, KeyError, IndexError):
-                pass
+            text = pytesseract.image_to_string(
+                Image.open(image_path), 
+                lang='eng+deu+nor+spa+nld'
+            )
+            self.logger.info(f"OCR Text extracted: {text}")
             
-            logger.info(f"Image opened successfully: {image.size}")
-            
-            # Convert to RGB if needed
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            
-            # Extract text
-            text = pytesseract.image_to_string(image)
-            logger.info(f"Full extracted text:\n{text}")
-            
-            # Convert text to lowercase for easier matching
             text_lower = text.lower()
             
-            # Initialize results
             result = {
                 'total': None,
-                'currency': None,
                 'date': None,
-                'amount': None,
-                'subtotal': None,
-                'tax': None,
-                'merchant': None,
-                'text': text
+                'currency': None
             }
             
             # Currency detection patterns
             currency_patterns = {
-                'USD': [r'\$', 'usd', 'dollar'],
-                'EUR': [r'€', 'eur', 'euro'],
-                'GBP': [r'£', 'gbp', 'pound'],
+                'USD': [r'us[\$]', r'usd', r'dollar', r'US\$'],
+                'EUR': [r'€', r'eur', r'euro'],
+                'GBP': [r'£', r'gbp', 'pound'],
                 'NOK': ['nok', 'kr', 'krone']
             }
             
             # Detect currency
             for curr, patterns in currency_patterns.items():
-                if any(re.search(pattern, text_lower) for pattern in patterns):
+                if any(re.search(pattern, text, re.IGNORECASE) for pattern in patterns):
                     result['currency'] = curr
-                    logging.info(f"Currency detected: {curr}")
                     break
             
-            # Find total amount
+            # Total amount patterns
             total_patterns = [
-                r'total[\s:]*[\$€£]?\s*(\d+[.,]\d{2})',
-                r'sum[\s:]*[\$€£]?\s*(\d+[.,]\d{2})',
-                r'amount[\s:]*[\$€£]?\s*(\d+[.,]\d{2})',
-                r'[\$€£]\s*(\d+[.,]\d{2})',  # Just currency symbol followed by amount
-                r'(\d+[.,]\d{2})\s*[\$€£]'   # Amount followed by currency symbol
+                r'total:?\s*[\$€£]?\s*(\d+[.,]\d{2})',
+                r'amount:?\s*[\$€£]?\s*(\d+[.,]\d{2})',
+                r'sum:?\s*[\$€£]?\s*(\d+[.,]\d{2})',
+                r'[\$€£]\s*(\d+[.,]\d{2})',
+                r'(\d+[.,]\d{2})\s*[\$€£]',
+                r'(?:^|\s)(\d+[.,]\d{2})(?:\s|$)'  # Any number with 2 decimals
             ]
             
+            # Process total amount
             for pattern in total_patterns:
-                logging.info(f"Trying pattern: {pattern}")
                 matches = re.finditer(pattern, text_lower)
                 for match in matches:
                     try:
-                        # Replace comma with dot for decimal parsing
                         amount_str = match.group(1).replace(',', '.')
                         amount = float(amount_str)
                         result['total'] = amount
-                        result['amount'] = amount
-                        logging.info(f"Total amount found: {amount}")
+                        self.logger.info(f"Total amount found: {amount}")
                         break
                     except (ValueError, IndexError):
                         continue
                 if result['total'] is not None:
                     break
             
-            # Enhanced date detection patterns
+            # Date patterns for all formats
             date_patterns = [
-                r'(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})',  # MM/DD/YYYY or DD/MM/YYYY
-                r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})',    # YYYY/MM/DD
-                r'(\d{1,2})[-.](\d{1,2})[-.](\d{2,4})',  # European format
-                r'(\d{2,4})[-.](\d{1,2})[-.](\d{1,2})'   # ISO format
+                # US format (MM/DD/YYYY)
+                r'(\d{1,2})/(\d{1,2})/(\d{4})',
+                # European format (DD.MM.YYYY)
+                r'(\d{1,2})[.-](\d{1,2})[.-](\d{4})',
+                # ISO format (YYYY-MM-DD)
+                r'(\d{4})-(\d{1,2})-(\d{1,2})',
+                # Text format (Month DD, YYYY)
+                r'(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2}),?\s+(\d{4})',
             ]
             
+            # Month name to number mapping
+            month_map = {
+                'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+                'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+            }
+            
+            # Process date
             for pattern in date_patterns:
-                matches = re.finditer(pattern, text)
+                matches = re.finditer(pattern, text_lower)
                 for match in matches:
                     try:
-                        # Extract the components
-                        d1, d2, d3 = match.groups()
+                        groups = match.groups()
                         
-                        # If year is 2 digits, assume 20XX
-                        if len(d3) == 2:
-                            d3 = '20' + d3
+                        if len(groups) == 2:  # Text format
+                            month_text = text_lower[match.start():].split()[0][:3]
+                            month = month_map.get(month_text, '01')
+                            day, year = groups
+                            result['date'] = f"{year}-{month}-{day.zfill(2)}"
+                        else:
+                            if groups[0].startswith('20'):  # ISO format
+                                year, month, day = groups
+                            else:  # US/EU format
+                                month, day, year = groups
+                                if int(month) > 12:  # Swap if day/month are reversed
+                                    day, month = month, day
+                            
+                            result['date'] = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
                         
-                        # Try to parse as MM/DD/YYYY (common US format)
-                        try:
-                            date_obj = datetime.strptime(f"{d1}/{d2}/{d3}", "%m/%d/%Y")
-                            result['date'] = date_obj.strftime("%Y-%m-%d")
-                            logging.info(f"Date found: {result['date']}")
-                            break
-                        except ValueError:
-                            # If that fails, try DD/MM/YYYY
-                            try:
-                                date_obj = datetime.strptime(f"{d2}/{d1}/{d3}", "%m/%d/%Y")
-                                result['date'] = date_obj.strftime("%Y-%m-%d")
-                                logging.info(f"Date found: {result['date']}")
-                                break
-                            except ValueError:
-                                continue
-                    except Exception as e:
-                        logging.error(f"Error parsing date: {str(e)}")
+                        self.logger.info(f"Date found: {result['date']}")
+                        break
+                    except (ValueError, IndexError) as e:
+                        self.logger.error(f"Error parsing date: {str(e)}")
                         continue
                 if result['date'] is not None:
                     break
             
-            # Extract information
-            subtotal = self._extract_subtotal(text)
-            tax = self._extract_tax(text)
-            merchant = self._extract_merchant(text)
-            
-            result['subtotal'] = subtotal
-            result['tax'] = tax
-            result['merchant'] = merchant
-            
-            logging.info(f"OCR Results: {result}")
+            self.logger.info(f"Final OCR Results: {result}")
             return result
             
         except Exception as e:
-            logger.error(f"OCR Error: {str(e)}")
-            raise
-
-    def _extract_amount(self, text):
-        """Extract amount from text."""
-        # First look for Summe patterns
-        summe_patterns = [
-            r'Summe\s*(\d+[,.]\d{2})',
-            r'Su\s*mm\s*e\s*(\d+[,.]\d{2})',
-            r'SUMME\s*(\d+[,.]\d{2})',
-            r'Summe\s*EUR\s*(\d+[,.]\d{2})',
-            r'Su\s*mm\s*e\s*EUR\s*(\d+[,.]\d{2})'
-        ]
-        
-        # Then look for payment patterns
-        payment_patterns = [
-            r'Kartenzahlung\s*EUR\s*(\d+[,.]\d{2})',
-            r'(\d+[,.]\d{2})\s*€',
-            r'€\s*(\d+[,.]\d{2})'
-        ]
-        
-        # Try Summe patterns first
-        for pattern in summe_patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                logger.info(f"Found amount using Summe pattern: {match.group(1)}")
-                return float(match.group(1).replace(',', '.'))
-        
-        # If no Summe found, try payment patterns
-        for pattern in payment_patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                logger.info(f"Found amount using payment pattern: {match.group(1)}")
-                return float(match.group(1).replace(',', '.'))
-        
-        return None
-
-    def _extract_subtotal(self, text):
-        """Extract subtotal amount."""
-        patterns = [
-            r'Netto\s*(\d+[,.]\d{2})',
-            r'Subtotal\s*(\d+[,.]\d{2})'
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                return float(match.group(1).replace(',', '.'))
-        return None
-
-    def _extract_tax(self, text):
-        """Extract tax amount."""
-        patterns = [
-            r'Mwst\s*(\d+[,.]\d{2})',
-            r'MwSt\.\s*(\d+[,.]\d{2})',
-            r'USt\.\s*(\d+[,.]\d{2})'
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                return float(match.group(1).replace(',', '.'))
-        return None
-
-    def _extract_date(self, text):
-        """Extract date from text."""
-        patterns = [
-            r'(\d{2}\.\d{2}\.\d{2})',  # DD.MM.YY
-            r'(\d{2}/\d{2}/\d{2})',    # DD/MM/YY
-            r'(\d{2}\.\d{2}\.\d{2})\s*\d{2}:\d{2}'  # DD.MM.YY HH:MM
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, text)
-            if match:
-                date_str = match.group(1)
-                try:
-                    # Parse and format in European style
-                    date_obj = datetime.strptime(date_str, '%d.%m.%y')
-                    return date_obj.strftime('%d.%m.%Y')  # European format
-                except ValueError:
-                    continue
-        return None
-
-    def _extract_merchant(self, text):
-        """Extract merchant name from the first meaningful line."""
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        if lines:
-            return lines[0]
-        return None
-
-def process_receipt(image_path):
-    try:
-        logging.info(f"Processing receipt at path: {image_path}")
-        
-        # Perform OCR
-        image = Image.open(image_path)
-        logging.info("Image opened successfully")
-        
-        text = pytesseract.image_to_string(image)
-        logging.info(f"OCR Text extracted: {text[:200]}...")
-        
-        # Convert text to lowercase for easier matching
-        text_lower = text.lower()
-        
-        # Initialize results
-        result = {
-            'total': None,
-            'currency': None,
-            'date': None
-        }
-        
-        # Currency detection patterns
-        currency_patterns = {
-            'USD': [r'\$', 'usd', 'dollar'],
-            'EUR': [r'€', 'eur', 'euro'],
-            'GBP': [r'£', 'gbp', 'pound'],
-            'NOK': ['nok', 'kr', 'krone']
-        }
-        
-        # Detect currency
-        for curr, patterns in currency_patterns.items():
-            if any(re.search(pattern, text_lower) for pattern in patterns):
-                result['currency'] = curr
-                logging.info(f"Currency detected: {curr}")
-                break
-        
-        # Find total amount
-        total_patterns = [
-            r'total[\s:]*[\$€£]?\s*(\d+[.,]\d{2})',
-            r'[\$€£]\s*(\d+[.,]\d{2})',
-            r'(\d+[.,]\d{2})\s*[\$€£]',
-            r'total:?\s*(\d+[.,]\d{2})',
-            r'total\s*\$?\s*(\d+[.,]\d{2})'
-        ]
-        
-        for pattern in total_patterns:
-            logging.info(f"Trying pattern: {pattern}")
-            matches = re.finditer(pattern, text_lower)
-            for match in matches:
-                try:
-                    amount_str = match.group(1).replace(',', '.')
-                    amount = float(amount_str)
-                    result['total'] = amount
-                    logging.info(f"Total amount found: {amount}")
-                    break
-                except (ValueError, IndexError):
-                    continue
-            if result['total'] is not None:
-                break
-        
-        # Enhanced date detection patterns
-        date_patterns = [
-            r'(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})',  # MM/DD/YYYY or DD/MM/YYYY
-            r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})',    # YYYY/MM/DD
-            r'(\d{1,2})[-.](\d{1,2})[-.](\d{2,4})',  # European format
-            r'(\d{2,4})[-.](\d{1,2})[-.](\d{1,2})'   # ISO format
-        ]
-        
-        for pattern in date_patterns:
-            matches = re.finditer(pattern, text)
-            for match in matches:
-                try:
-                    # Extract the components
-                    d1, d2, d3 = match.groups()
-                    
-                    # If year is 2 digits, assume 20XX
-                    if len(d3) == 2:
-                        d3 = '20' + d3
-                    
-                    # Try to parse as MM/DD/YYYY (common US format)
-                    try:
-                        date_obj = datetime.strptime(f"{d1}/{d2}/{d3}", "%m/%d/%Y")
-                        result['date'] = date_obj.strftime("%Y-%m-%d")
-                        logging.info(f"Date found: {result['date']}")
-                        break
-                    except ValueError:
-                        # If that fails, try DD/MM/YYYY
-                        try:
-                            date_obj = datetime.strptime(f"{d2}/{d1}/{d3}", "%m/%d/%Y")
-                            result['date'] = date_obj.strftime("%Y-%m-%d")
-                            logging.info(f"Date found: {result['date']}")
-                            break
-                        except ValueError:
-                            continue
-                except Exception as e:
-                    logging.error(f"Error parsing date: {str(e)}")
-                    continue
-            if result['date'] is not None:
-                break
-        
-        logging.info(f"Final OCR Results: {result}")
-        return result
-        
-    except Exception as e:
-        logging.error(f"Error in process_receipt: {str(e)}")
-        raise 
+            self.logger.error(f"Error in _process_image: {str(e)}")
+            raise 

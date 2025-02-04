@@ -301,3 +301,51 @@ form {
 .upload-btn:hover {
     background-color: #f8f9fa;
 }
+
+/* Currency calculator styles */
+.calculator {
+    display: none;
+    position: relative;
+    margin-top: -4px;  /* Adjusted from -8px to -4px for better spacing */
+}
+
+.line-conversion {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    padding: 8px 0;  /* Increased padding */
+}
+
+.line-conversion small {
+    color: #6c757d;
+    font-size: 0.85rem;
+    display: block;
+    line-height: 1.2;
+}
+
+.line-conversion .calculation {
+    color: #0d6efd;
+    display: block;
+    margin-top: 2px;
+}
+
+/* Adjust expense line spacing */
+.expense-line {
+    position: relative;
+    margin-bottom: 3.5rem !important;  /* Increased from 2.5rem to 3.5rem */
+}
+
+.row.g-3.align-items-center {
+    margin-bottom: 0;
+}
+
+/* Currency select inside input group */
+.input-group .currency-select {
+    border: none;
+    background-color: #f8f9fa;
+}
+
+.input-group-text.p-0 {
+    background-color: #f8f9fa;
+}
