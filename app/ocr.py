@@ -7,6 +7,11 @@ from pdf2image import convert_from_path
 import os
 
 class ReceiptScanner:
+    """
+    A class to scan and extract information from receipt images and PDFs.
+    Supports multiple languages and currencies.
+    """
+
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         # Set logging level to DEBUG
@@ -20,8 +25,14 @@ class ReceiptScanner:
             self.logger.addHandler(console_handler)
 
     def process_receipt(self, image_path):
+        """
+        Main entry point for receipt processing. Handles both PDF and image files.
+        Args:
+            image_path (str): Path to the receipt file (PDF or image)
+        Returns:
+            dict: Extracted receipt information (total, date, currency)
+        """
         try:
-            # Log the start of processing
             self.logger.debug(f"Starting to process receipt: {image_path}")
 
             # Handle PDF files
@@ -49,10 +60,17 @@ class ReceiptScanner:
             raise
 
     def _process_image(self, image_path):
+        """
+        Process an image file to extract receipt information.
+        Args:
+            image_path (str): Path to the image file
+        Returns:
+            dict: Extracted receipt information
+        """
         try:
             self.logger.debug(f"Processing image at path: {image_path}")
             
-            # Extract text with specific language support
+            # 1. OCR Text Extraction
             text = pytesseract.image_to_string(
                 Image.open(image_path),
                 lang='eng+deu+nor+spa+nld'  # English, German, Norwegian, Spanish, Dutch
@@ -63,14 +81,9 @@ class ReceiptScanner:
             self.logger.debug("=== RAW OCR OUTPUT END ===")
             
             text_lower = text.lower()
-            
-            result = {
-                'total': None,
-                'date': None,
-                'currency': None
-            }
+            result = {'total': None, 'date': None, 'currency': None}
 
-            # Currency detection for specific countries
+            # 2. Currency Detection
             currency_patterns = {
                 'USD': [
                     r'(?:us)?[\$]',      # $, US$
@@ -101,11 +114,12 @@ class ReceiptScanner:
                     self.logger.info(f"Currency detected: {curr}")
                     break
 
+            # 3. Total Amount Detection
             # Total amount patterns in multiple languages
             total_patterns = [
                 # Add these new patterns at the start
-                r'-(\d+[.,]\d{2})\s*(?:EUR|€)',     # Matches "-24,90 EUR"
-                r'(?:EUR|€)\s*-(\d+[.,]\d{2})',     # Matches "EUR -24,90"
+                r'^[^\d]*?(-?\d+[.,]\d{2})\s*(?:EUR|€)',     # Matches amounts at start of text with currency
+                r'^[^\d]*?(?:EUR|€)\s*(-?\d+[.,]\d{2})',     # Matches currency then amount at start of text
                 # English
                 r'\btotal\b.*?(\d+[.,]\d{2})',
                 r'(\d+[.,]\d{2}).*?\btotal\b',
@@ -128,58 +142,71 @@ class ReceiptScanner:
                 r'(\d+[.,]\d{2})\s*(?:kr)'
             ]
 
-            # Process total amount
+            # Process total amount using two strategies:
+            # Strategy 1: Find explicit total line
             total_found = False
-            for pattern in total_patterns:
-                matches = re.finditer(pattern, text_lower)
-                for match in matches:
-                    try:
-                        amount_str = match.group(1).replace(',', '.')
-                        amount = float(amount_str)
-                        if 'total' in pattern.lower() or 'gesamtbetrag' in pattern.lower():
+            lines = text_lower.split('\n')
+            
+            for line in lines:
+                line = line.strip()
+                if ('total' in line.lower()) and ('sub' not in line.lower()):  # Exclude subtotal
+                    amount_matches = re.findall(r'-?(\d+[.,]\d{2})', line)
+                    if amount_matches:
+                        try:
+                            amount_str = amount_matches[0].replace(',', '.')
+                            amount = abs(float(amount_str))
                             result['total'] = amount
-                            self.logger.info(f"Total amount found (from total line): {amount}")
+                            self.logger.info(f"Total amount found from total line: {amount}")
                             total_found = True
                             break
-                    except (ValueError, IndexError):
-                        continue
-                if total_found:
-                    break
+                        except (ValueError, IndexError):
+                            continue
 
-            # Date patterns for multiple formats
+            # Strategy 2: Fall back to prominent amount
+            if not total_found:
+                for line in lines:
+                    line = line.strip()
+                    if 'eur' in line or '€' in line:
+                        amount_matches = re.findall(r'-?(\d+[.,]\d{2})', line)
+                        if amount_matches:
+                            try:
+                                amount_str = amount_matches[0].replace(',', '.')
+                                amount = abs(float(amount_str))
+                                result['total'] = amount
+                                self.logger.info(f"Amount found from prominent position: {amount}")
+                                total_found = True
+                                break
+                            except (ValueError, IndexError):
+                                continue
+
+            # 4. Date Detection
+            # Define date patterns for multiple formats
             date_patterns = [
-                # Add this new pattern at the start
+                # German format
                 r'(\d{1,2})\.\s*(?:januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember)\s*(\d{4})',
-                # US format (prioritized for US receipts)
+                # US format
                 r'(\d{1,2})/(\d{1,2})/(\d{4})',          # MM/DD/YYYY
                 # European format
                 r'(\d{1,2})[.-](\d{1,2})[.-](\d{4})',    # DD.MM.YYYY or DD-MM-YYYY
                 # ISO format
                 r'(\d{4})-(\d{1,2})-(\d{1,2})',          # YYYY-MM-DD
-                # Text month format (multi-language)
-                r'(\d{1,2})\s*(?:jan|feb|mar|apr|may|mai|jun|jul|aug|sep|oct|okt|nov|dec|dez)[a-z]*\s*(\d{4})',  # DD Month YYYY
-                r'(?:jan|feb|mar|apr|may|mai|jun|jul|aug|sep|oct|okt|nov|dec|dez)[a-z]*\s*(\d{1,2})\s*,?\s*(\d{4})'  # Month DD YYYY
+                # Text month formats
+                r'(\d{1,2})\s*(?:jan|feb|mar|apr|may|mai|jun|jul|aug|sep|oct|okt|nov|dec|dez)[a-z]*\s*(\d{4})',
+                r'(?:jan|feb|mar|apr|may|mai|jun|jul|aug|sep|oct|okt|nov|dec|dez)[a-z]*\s*(\d{1,2})\s*,?\s*(\d{4})'
             ]
 
-            # Month name mappings (multi-language)
+            # Month name mappings for multiple languages
             month_map = {
+                # English/Common
                 'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
                 'may': '05', 'mai': '05', 'jun': '06', 'jul': '07',
                 'aug': '08', 'sep': '09', 'oct': '10', 'okt': '10',
                 'nov': '11', 'dec': '12', 'dez': '12',
-                # Add German months
-                'januar': '01',
-                'februar': '02',
-                'märz': '03',
-                'april': '04',
-                'mai': '05',
-                'juni': '06',
-                'juli': '07',
-                'august': '08',
-                'september': '09',
-                'oktober': '10',
-                'november': '11',
-                'dezember': '12'
+                # German
+                'januar': '01', 'februar': '02', 'märz': '03',
+                'april': '04', 'mai': '05', 'juni': '06',
+                'juli': '07', 'august': '08', 'september': '09',
+                'oktober': '10', 'november': '11', 'dezember': '12'
             }
 
             # Process date
@@ -187,7 +214,16 @@ class ReceiptScanner:
                 matches = list(re.finditer(pattern, text_lower))
                 for match in matches:
                     try:
-                        if 'jan|feb|mar' in pattern:  # Text month format
+                        if 'januar|februar|märz' in pattern:  # German text month format
+                            day = match.group(1)
+                            year = match.group(2)
+                            # Map German month names to numbers
+                            text_before = text_lower[max(0, match.start() - 20):match.end()]
+                            for month_name in month_map:
+                                if month_name in text_before:
+                                    month = month_map[month_name]
+                                    break
+                        elif 'jan|feb|mar' in pattern:  # English text month format
                             text_before = text_lower[max(0, match.start() - 20):match.end()]
                             for month_name in month_map:
                                 if month_name in text_before:
