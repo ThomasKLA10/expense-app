@@ -35,7 +35,7 @@
                     <tbody>
                         {% for receipt in receipts if receipt.status == 'pending' %}
                         <tr>
-                            <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
                             <td>{{ receipt.user.name }}</td>
                             <td>{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</td>
                             <td>{{ receipt.category }}</td>
@@ -86,7 +86,7 @@
                             <tbody>
                                 {% for receipt in receipts if receipt.status == 'approved' %}
                                 <tr>
-                                    <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
                                     <td>{{ receipt.user.name }}</td>
                                     <td>{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</td>
                                     <td>{{ receipt.category }}</td>
@@ -136,7 +136,7 @@
                             <tbody>
                                 {% for receipt in receipts if receipt.status == 'rejected' %}
                                 <tr>
-                                    <td>{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
                                     <td>{{ receipt.user.name }}</td>
                                     <td>{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</td>
                                     <td>{{ receipt.category }}</td>
