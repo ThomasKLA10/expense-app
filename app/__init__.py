@@ -370,8 +370,6 @@ def create_app():
     @login_required
     def submit_expense():
         try:
-            print("Starting submit_expense...")  # Debug print
-            
             # Get form data
             expense_type = request.form.get('expense-type', 'other')
             
@@ -380,6 +378,7 @@ def create_app():
             descriptions = request.form.getlist('description[]')
             amounts = request.form.getlist('amount[]')
             currencies = request.form.getlist('currency[]')
+            original_amounts = request.form.getlist('original_amount[]')
             
             # Create list of expenses for PDF generation
             expenses = []
@@ -388,7 +387,8 @@ def create_app():
                     'date': dates[i],
                     'description': descriptions[i],
                     'amount': float(amounts[i]),
-                    'currency': currencies[i]
+                    'currency': currencies[i],
+                    'original_amount': float(original_amounts[i]) if currencies[i] != 'EUR' else float(amounts[i])
                 })
             
             # Get travel details if applicable
@@ -421,18 +421,7 @@ def create_app():
                     filename = secure_filename(file.filename)
                     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(filepath)
-                    
-                    # Check if file is an image
-                    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                        # Convert image to PDF
-                        img = Image.open(filepath)
-                        pdf_path = filepath.rsplit('.', 1)[0] + '.pdf'
-                        img.save(pdf_path, 'PDF', resolution=100.0)
-                        receipt_paths.append(pdf_path)
-                        # Clean up original image file
-                        os.remove(filepath)
-                    else:
-                        receipt_paths.append(filepath)
+                    receipt_paths.append(filepath)
             
             # Merge summary with receipts
             final_pdf_path = ExpenseReportGenerator.merge_with_receipts(summary_pdf_path, receipt_paths)
@@ -449,7 +438,7 @@ def create_app():
                 purpose=descriptions[0] if descriptions else 'Multiple expenses',
                 status='pending',
                 office='bonn',
-                file_path_db=final_pdf_path  # Store the path to the generated PDF
+                file_path_db=final_pdf_path
             )
             
             if expense_type == 'travel':
@@ -460,11 +449,6 @@ def create_app():
             
             db.session.add(receipt)
             db.session.commit()
-            
-            # After PDF generation
-            print(f"Generated PDF path: {summary_pdf_path}")  # Debug print
-            print(f"Final PDF path: {final_pdf_path}")  # Debug print
-            print(f"Relative path stored in DB: {receipt.file_path_db}")  # Debug print
             
             return jsonify({
                 'success': True,

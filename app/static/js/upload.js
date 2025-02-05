@@ -570,34 +570,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('return', document.querySelector('input[name="return"]').value);
             }
             
-            // Add expense lines with converted EUR amounts
+            // Add expense lines with both original and converted amounts
             expenseLines.forEach((line, index) => {
                 const dateInput = line.querySelector('input[type="date"]').value;
                 const descriptionInput = line.querySelector('input[type="text"]').value;
                 const originalAmount = line.querySelector('.amount-input').value;
-                const currency = line.querySelector('.currency-select').value;
+                const originalCurrency = line.querySelector('.currency-select').value;
                 
                 // Get the converted EUR amount from the calculator display
                 let eurAmount = originalAmount;
-                if (currency !== 'EUR') {
+                if (originalCurrency !== 'EUR') {
                     const calculatorText = line.querySelector('.calculation');
                     if (calculatorText) {
-                        // Extract the final EUR amount from the calculation text
                         const match = calculatorText.textContent.match(/= ([\d.]+) EUR$/);
                         if (match) {
-                            // Format to exactly 2 decimal places
                             eurAmount = Number(match[1]).toFixed(2);
                         }
                     }
                 } else {
-                    // Also format EUR amounts to 2 decimal places
-                    eurAmount = Number(eurAmount).toFixed(2);
+                    eurAmount = Number(originalAmount).toFixed(2);
                 }
                 
                 formData.append(`date[]`, dateInput);
                 formData.append(`description[]`, descriptionInput);
-                formData.append(`amount[]`, eurAmount);  // Now formatted to 2 decimals
-                formData.append(`currency[]`, 'EUR');    // Always EUR since we converted
+                formData.append(`amount[]`, eurAmount);  // EUR amount
+                formData.append(`currency[]`, originalCurrency);  // Original currency
+                formData.append(`original_amount[]`, originalAmount);  // Original amount
                 
                 // Add receipt file if present
                 const fileInput = line.querySelector('input[type="file"]');

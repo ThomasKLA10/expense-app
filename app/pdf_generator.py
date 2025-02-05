@@ -7,6 +7,8 @@ import os
 from PyPDF2 import PdfMerger
 from datetime import datetime
 import uuid
+from PIL import Image
+import io
 
 class ExpenseReportGenerator:
     def __init__(self, user_name, expense_type='other'):
@@ -34,19 +36,58 @@ class ExpenseReportGenerator:
             bottomMargin=72
         )
         
-        # Build content
+        # Create the table data
+        table_data = [
+            ['Date', 'Description', 'EUR', 'Foreign currency']  # Header row
+        ]
+        
+        # Add expense rows
+        for expense in expenses:
+            date = expense['date']
+            description = expense['description']
+            amount_eur = f"EUR {expense['amount']:.2f}"
+            # Add foreign currency info if not EUR
+            foreign_currency = f"{expense['currency']} {expense['original_amount']:.2f}" if expense['currency'] != 'EUR' else '-'
+            
+            table_data.append([date, description, amount_eur, foreign_currency])
+        
+        # Add total row
+        total_eur = sum(expense['amount'] for expense in expenses)
+        table_data.append(['', 'Total:', f"EUR {total_eur:.2f}", ''])
+        
+        # Create table style
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            # Style for total row
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ])
+        
+        # Create the table
+        expense_table = Table(table_data, colWidths=[80, 200, 100, 100])
+        expense_table.setStyle(style)
+        
+        # Build the story
         story = []
         
-        # Add logo
-        story.append(Paragraph("B&B", self.styles['Heading1']))
-        story.append(Spacer(1, 20))
-        
-        # Add title
-        story.append(Paragraph("Expense claim", self.styles['Heading1']))
+        # Add header
+        story.append(Paragraph("B&B;", self.styles['Title']))
+        story.append(Spacer(1, 12))
+        story.append(Paragraph("Expense claim", self.styles['Title']))
         story.append(Spacer(1, 20))
         
         # Add employee info
-        story.append(Paragraph(f"Employee", self.styles['Heading2']))
+        story.append(Paragraph("Employee", self.styles['Heading2']))
         story.append(Paragraph(self.user_name, self.styles['Normal']))
         story.append(Spacer(1, 20))
         
@@ -56,71 +97,44 @@ class ExpenseReportGenerator:
             story.append(Paragraph(comment, self.styles['Normal']))
             story.append(Spacer(1, 20))
         
-        # Add travel details if travel expense
-        if self.expense_type == 'travel' and travel_details:
+        # Add travel details if exists
+        if travel_details:
             story.append(Paragraph("Travel Details", self.styles['Heading2']))
-            travel_data = [
-                ["Purpose:", travel_details.get('purpose', '')],
-                ["From:", travel_details.get('from', '')],
-                ["To:", travel_details.get('to', '')],
-                ["Departure:", travel_details.get('departure', '')],
-                ["Return:", travel_details.get('return', '')]
-            ]
-            travel_table = Table(travel_data, colWidths=[100, 400])
-            travel_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ]))
-            story.append(travel_table)
+            for key, value in travel_details.items():
+                if value:  # Only add if value exists
+                    story.append(Paragraph(f"{key.capitalize()}: {value}", self.styles['Normal']))
             story.append(Spacer(1, 20))
         
         # Add expenses table
         story.append(Paragraph("Expenses", self.styles['Heading2']))
-        expense_data = [['Date', 'Description', 'EUR', 'Foreign currency']]
-        total_eur = 0
-        
-        for expense in expenses:
-            expense_data.append([
-                expense['date'],
-                expense['description'],
-                f"EUR {expense['amount']:.2f}",
-                expense.get('foreign_amount', '-')
-            ])
-            total_eur += float(expense['amount'])
-        
-        expense_table = Table(expense_data, colWidths=[100, 200, 100, 100])
-        expense_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-        ]))
         story.append(expense_table)
-        story.append(Spacer(1, 20))
-        
-        # Add total
-        story.append(Paragraph(f"Total: EUR {total_eur:.2f}", self.styles['Heading2']))
         
         # Generate the PDF
         doc.build(story)
         return temp_path, report_id
     
     @staticmethod
-    def merge_with_receipts(summary_pdf, receipt_files):
+    def merge_with_receipts(summary_pdf, receipt_paths):
         merger = PdfMerger()
         
-        # Add summary page
+        # Add the summary PDF first
         merger.append(summary_pdf)
         
-        # Add each receipt
-        for receipt in receipt_files:
-            merger.append(receipt)
+        # Process and add each receipt
+        for receipt_path in receipt_paths:
+            if receipt_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                # Convert image to PDF
+                img = Image.open(receipt_path)
+                pdf_path = receipt_path.rsplit('.', 1)[0] + '_temp.pdf'
+                img.save(pdf_path, 'PDF', resolution=100.0)
+                merger.append(pdf_path)
+                # Clean up temporary PDF
+                os.remove(pdf_path)
+            else:
+                # Assume it's already a PDF
+                merger.append(receipt_path)
         
-        # Generate final PDF path in the same directory as summary_pdf
+        # Generate final PDF path
         final_path = summary_pdf.replace('_summary.pdf', '_complete.pdf')
         
         # Write the complete PDF
