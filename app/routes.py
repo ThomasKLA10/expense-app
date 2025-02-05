@@ -8,6 +8,7 @@ from flask_login import login_required, current_user
 import importlib
 from .ocr import ReceiptScanner
 import logging
+from .pdf_generator import ExpenseReportGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -143,3 +144,98 @@ def process_ocr():
         return jsonify({'error': str(e), 'success': False})
     
     return jsonify({'success': False})
+
+@main.route('/submit_expense', methods=['POST'])
+@login_required
+def submit_expense():
+    try:
+        # Get form data
+        expense_type = request.form.get('expense-type', 'other')
+        
+        # Get expense lines
+        dates = request.form.getlist('date[]')
+        descriptions = request.form.getlist('description[]')
+        amounts = request.form.getlist('amount[]')  # These are already in EUR from the frontend
+        currencies = request.form.getlist('currency[]')
+        receipt_files = request.files.getlist('receipt[]')
+        
+        # Prepare expenses data for PDF
+        expenses = []
+        for i in range(len(dates)):
+            expenses.append({
+                'date': dates[i],
+                'description': descriptions[i],
+                'amount': float(amounts[i]),  # This is already in EUR
+                'currency': 'EUR'  # Since we're storing the EUR value
+            })
+        
+        # Get travel details if applicable
+        travel_details = None
+        if expense_type == 'travel':
+            travel_details = {
+                'purpose': request.form.get('purpose'),
+                'from': request.form.get('from'),
+                'to': request.form.get('to'),
+                'departure': request.form.get('departure'),
+                'return': request.form.get('return')
+            }
+        
+        # Get comment for other expenses
+        comment = request.form.get('comment') if expense_type == 'other' else None
+        
+        # Generate PDF
+        generator = ExpenseReportGenerator(current_user.name, expense_type)
+        summary_pdf_path, report_id = generator.generate_report(
+            expenses=expenses,
+            travel_details=travel_details,
+            comment=comment
+        )
+        
+        # Save receipt files and merge with summary
+        receipt_paths = []
+        for file in receipt_files:
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                receipt_paths.append(filepath)
+        
+        # Merge summary with receipts
+        final_pdf_path = ExpenseReportGenerator.merge_with_receipts(summary_pdf_path, receipt_paths)
+        
+        # Calculate total in EUR (already converted in frontend)
+        total_eur = sum(float(amount) for amount in amounts)
+        
+        # Create receipt record
+        receipt = Receipt(
+            user_id=current_user.id,
+            amount=total_eur,
+            currency='EUR',
+            category=expense_type,
+            purpose=descriptions[0] if descriptions else 'Multiple expenses',
+            status='pending',
+            office='bonn',
+            file_path_db=final_pdf_path  # Store the path to the generated PDF
+        )
+        
+        if expense_type == 'travel':
+            receipt.travel_from = request.form.get('from')
+            receipt.travel_to = request.form.get('to')
+            receipt.departure_date = datetime.strptime(request.form.get('departure'), '%Y-%m-%d').date() if request.form.get('departure') else None
+            receipt.return_date = datetime.strptime(request.form.get('return'), '%Y-%m-%d').date() if request.form.get('return') else None
+        
+        db.session.add(receipt)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'redirect': url_for('dashboard')
+        })
+        
+    except Exception as e:
+        print(f"Error in submit_expense: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400

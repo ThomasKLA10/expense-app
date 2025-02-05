@@ -10,6 +10,7 @@ from functools import wraps
 from flask import abort
 from datetime import datetime, timezone
 import logging
+from .pdf_generator import ExpenseReportGenerator
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
 
@@ -133,13 +134,13 @@ def create_app():
                         amount=expense['amount'],
                         amount_foreign=expense['amount_foreign'],
                         currency=expense['currency'],
-                        category=expense_type,
+                        category=expense['type'],
                         expense_type=expense['type'],
                         file_path=expense['file_path'],
                         status='pending'
                     )
                     
-                    if expense_type == 'travel':
+                    if expense['type'] == 'travel':
                         receipt.travel_purpose = request.form.get('purpose')
                         receipt.travel_from = request.form.get('from')
                         receipt.travel_to = request.form.get('to')
@@ -362,6 +363,56 @@ def create_app():
         except Exception as e:
             print(f"Server error: {str(e)}")  # Debug print
             return jsonify({'error': 'Server error occurred'})
+
+    @app.route('/submit_expense', methods=['POST'])
+    @login_required
+    def submit_expense():
+        try:
+            # Get form data
+            expense_type = request.form.get('expense-type', 'other')
+            
+            # Get expense lines
+            dates = request.form.getlist('date[]')
+            descriptions = request.form.getlist('description[]')
+            amounts = request.form.getlist('amount[]')
+            currencies = request.form.getlist('currency[]')
+            
+            # Calculate total in EUR
+            total_eur = sum(float(amount) for amount in amounts)
+            
+            # Create receipt record with only valid fields from the model
+            receipt = Receipt(
+                user_id=current_user.id,
+                amount=total_eur,
+                currency='EUR',
+                category=expense_type,
+                purpose=descriptions[0] if descriptions else 'Multiple expenses',
+                status='pending',
+                office='bonn',  # This is required as nullable=False
+                file_path_db='temp'  # This is required as nullable=False
+            )
+            
+            if expense_type == 'travel':
+                receipt.travel_from = request.form.get('from')
+                receipt.travel_to = request.form.get('to')
+                receipt.departure_date = datetime.strptime(request.form.get('departure'), '%Y-%m-%d').date() if request.form.get('departure') else None
+                receipt.return_date = datetime.strptime(request.form.get('return'), '%Y-%m-%d').date() if request.form.get('return') else None
+            
+            db.session.add(receipt)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'redirect': url_for('dashboard')
+            })
+            
+        except Exception as e:
+            print(f"Error in submit_expense: {str(e)}")
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 400
 
     # Create database tables
     with app.app_context():

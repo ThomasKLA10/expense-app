@@ -505,6 +505,128 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAllCalculations();
     
     console.log('Event listeners added');
+
+    const form = document.getElementById('expense-form');
+    const submitButton = document.getElementById('submit-form');
+
+    if (submitButton) {
+        submitButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Submit button clicked');
+            
+            // Validate required fields
+            const expenseLines = document.querySelectorAll('.expense-line');
+            let isValid = true;
+            let errorMessage = '';
+
+            // Check if there's at least one expense line
+            if (expenseLines.length === 0) {
+                errorMessage = 'Please add at least one expense line';
+                isValid = false;
+            }
+
+            // Check each expense line
+            expenseLines.forEach((line, index) => {
+                const dateInput = line.querySelector('input[type="date"]');
+                const descriptionInput = line.querySelector('input[type="text"]');
+                const amountInput = line.querySelector('.amount-input');
+                
+                if (!dateInput?.value || !descriptionInput?.value || !amountInput?.value) {
+                    errorMessage = `Please fill all required fields in expense line ${index + 1}`;
+                    isValid = false;
+                }
+            });
+
+            // Check comment field for "other" expenses
+            const expenseType = document.querySelector('input[name="expense-type"]:checked')?.value || 'other';
+            if (expenseType === 'other') {
+                const commentInput = document.getElementById('comment');
+                if (!commentInput || !commentInput.value.trim()) {
+                    errorMessage = 'Please add a comment for other expenses';
+                    isValid = false;
+                }
+            }
+
+            if (!isValid) {
+                alert(errorMessage);
+                return;
+            }
+
+            // Create FormData object
+            const formData = new FormData();
+            formData.append('expense-type', expenseType);
+            
+            // Add comment if it's "other" expense type
+            if (expenseType === 'other') {
+                formData.append('comment', document.getElementById('comment').value);
+            }
+            
+            // Add travel details if it's "travel" expense type
+            if (expenseType === 'travel') {
+                formData.append('purpose', document.querySelector('input[name="purpose"]').value);
+                formData.append('from', document.querySelector('input[name="from"]').value);
+                formData.append('to', document.querySelector('input[name="to"]').value);
+                formData.append('departure', document.querySelector('input[name="departure"]').value);
+                formData.append('return', document.querySelector('input[name="return"]').value);
+            }
+            
+            // Add expense lines with converted EUR amounts
+            expenseLines.forEach((line, index) => {
+                const dateInput = line.querySelector('input[type="date"]').value;
+                const descriptionInput = line.querySelector('input[type="text"]').value;
+                const originalAmount = line.querySelector('.amount-input').value;
+                const currency = line.querySelector('.currency-select').value;
+                
+                // Get the converted EUR amount from the calculator display
+                let eurAmount = originalAmount;
+                if (currency !== 'EUR') {
+                    const calculatorText = line.querySelector('.calculation');
+                    if (calculatorText) {
+                        // Extract the final EUR amount from the calculation text
+                        const match = calculatorText.textContent.match(/= ([\d.]+) EUR$/);
+                        if (match) {
+                            // Format to exactly 2 decimal places
+                            eurAmount = Number(match[1]).toFixed(2);
+                        }
+                    }
+                } else {
+                    // Also format EUR amounts to 2 decimal places
+                    eurAmount = Number(eurAmount).toFixed(2);
+                }
+                
+                formData.append(`date[]`, dateInput);
+                formData.append(`description[]`, descriptionInput);
+                formData.append(`amount[]`, eurAmount);  // Now formatted to 2 decimals
+                formData.append(`currency[]`, 'EUR');    // Always EUR since we converted
+                
+                // Add receipt file if present
+                const fileInput = line.querySelector('input[type="file"]');
+                if (fileInput.files[0]) {
+                    formData.append(`receipt[]`, fileInput.files[0]);
+                }
+            });
+            
+            // Submit the form
+            fetch('/submit_expense', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while submitting the form');
+            });
+        });
+    } else {
+        console.error('Submit button not found!');
+    }
 });
 
 // Add this function back
