@@ -10,4 +10,5 @@ app/static/uploads/*
 !app/static/uploads/.gitkeep
 # Ignore uploaded files
 app/uploads/*
-!app/uploads/.gitkeep
+!app/uploads/.gitkeepapp/temp/
+temp/
