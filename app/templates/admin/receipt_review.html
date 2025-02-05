@@ -4,7 +4,7 @@
 <div class="container">
     <div class="row mb-4">
         <div class="col">
-            <h2>Review Receipt</h2>
+            <h2>Receipt Details</h2>
         </div>
         <div class="col-auto">
             <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
@@ -19,11 +19,8 @@
                 <div class="card-body">
                     <h5 class="card-title">Receipt Details</h5>
                     <dl class="row">
-                        <dt class="col-sm-4">User</dt>
-                        <dd class="col-sm-8">{{ receipt.user.name }}</dd>
-                        
                         <dt class="col-sm-4">Date</dt>
-                        <dd class="col-sm-8">{{ receipt.date_submitted.strftime('%Y-%m-%d') }}</dd>
+                        <dd class="col-sm-8">{{ receipt.date_submitted.strftime('%Y-%m-%d %H:%M') }}</dd>
                         
                         <dt class="col-sm-4">Amount</dt>
                         <dd class="col-sm-8">{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</dd>
@@ -61,16 +58,27 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Receipt Image</h5>
-                    <div class="receipt-preview-layout">
-                        <div class="magnifier-panel">
-                            <div class="magnifier-view"></div>
+                    <h5 class="card-title">Receipt Document</h5>
+                    {% if receipt.file_path_db %}
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <a href="{{ url_for('view_receipt_file', receipt_id=receipt.id) }}" 
+                                   class="btn btn-primary" 
+                                   target="_blank">
+                                    <i class="bi bi-file-pdf"></i> View PDF
+                                </a>
+                            </div>
+                            <div class="receipt-preview">
+                                <iframe src="{{ url_for('view_receipt_file', receipt_id=receipt.id) }}"
+                                        width="100%" 
+                                        height="600px" 
+                                        frameborder="0">
+                                </iframe>
+                            </div>
                         </div>
-                        <div class="receipt-zoom-container">
-                            <img src="{{ url_for('uploaded_file', filename=receipt.file_path) }}" 
-                                 alt="Receipt" class="receipt-image">
-                        </div>
-                    </div>
+                    {% else %}
+                        <p class="text-center text-muted">No receipt file available</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

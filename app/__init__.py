@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, redirect, url_for, flash, request, send_from_directory, jsonify
+from flask import Flask, render_template, redirect, url_for, flash, request, send_from_directory, jsonify, send_file
 from flask_login import login_required, current_user
 from .extensions import db, migrate, login_manager
 from .config import Config
@@ -368,6 +368,8 @@ def create_app():
     @login_required
     def submit_expense():
         try:
+            print("Starting submit_expense...")  # Debug print
+            
             # Get form data
             expense_type = request.form.get('expense-type', 'other')
             
@@ -377,10 +379,55 @@ def create_app():
             amounts = request.form.getlist('amount[]')
             currencies = request.form.getlist('currency[]')
             
-            # Calculate total in EUR
+            # Create list of expenses for PDF generation
+            expenses = []
+            for i in range(len(dates)):
+                expenses.append({
+                    'date': dates[i],
+                    'description': descriptions[i],
+                    'amount': float(amounts[i]),
+                    'currency': currencies[i]
+                })
+            
+            # Get travel details if applicable
+            travel_details = None
+            if expense_type == 'travel':
+                travel_details = {
+                    'purpose': request.form.get('purpose'),
+                    'from': request.form.get('from'),
+                    'to': request.form.get('to'),
+                    'departure': request.form.get('departure'),
+                    'return': request.form.get('return')
+                }
+            
+            # Get comment for other expenses
+            comment = request.form.get('comment') if expense_type == 'other' else None
+            
+            # Generate PDF
+            generator = ExpenseReportGenerator(current_user.name, expense_type)
+            summary_pdf_path, report_id = generator.generate_report(
+                expenses=expenses,
+                travel_details=travel_details,
+                comment=comment
+            )
+            
+            # Save receipt files and merge with summary
+            receipt_files = request.files.getlist('receipt[]')
+            receipt_paths = []
+            for file in receipt_files:
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    receipt_paths.append(filepath)
+            
+            # Merge summary with receipts
+            final_pdf_path = ExpenseReportGenerator.merge_with_receipts(summary_pdf_path, receipt_paths)
+            
+            # Calculate total in EUR (already converted in frontend)
             total_eur = sum(float(amount) for amount in amounts)
             
-            # Create receipt record with only valid fields from the model
+            # Create receipt record
             receipt = Receipt(
                 user_id=current_user.id,
                 amount=total_eur,
@@ -388,8 +435,8 @@ def create_app():
                 category=expense_type,
                 purpose=descriptions[0] if descriptions else 'Multiple expenses',
                 status='pending',
-                office='bonn',  # This is required as nullable=False
-                file_path_db='temp'  # This is required as nullable=False
+                office='bonn',
+                file_path_db=final_pdf_path  # Store the path to the generated PDF
             )
             
             if expense_type == 'travel':
@@ -400,6 +447,11 @@ def create_app():
             
             db.session.add(receipt)
             db.session.commit()
+            
+            # After PDF generation
+            print(f"Generated PDF path: {summary_pdf_path}")  # Debug print
+            print(f"Final PDF path: {final_pdf_path}")  # Debug print
+            print(f"Relative path stored in DB: {receipt.file_path_db}")  # Debug print
             
             return jsonify({
                 'success': True,
@@ -413,6 +465,31 @@ def create_app():
                 'success': False,
                 'error': str(e)
             }), 400
+
+    @app.route('/receipt/<int:receipt_id>/file')
+    @login_required
+    def view_receipt_file(receipt_id):
+        receipt = Receipt.query.get_or_404(receipt_id)
+        
+        # Check if user has permission to view this receipt
+        if receipt.user_id != current_user.id and not current_user.is_admin:
+            abort(403)
+        
+        # Convert relative path to absolute path
+        base_dir = os.path.abspath(os.path.dirname(__file__))
+        absolute_path = os.path.join(base_dir, receipt.file_path_db)
+        
+        # Check if file exists
+        if not receipt.file_path_db or not os.path.exists(absolute_path):
+            abort(404)
+        
+        # Send the file
+        return send_file(
+            absolute_path,
+            mimetype='application/pdf',
+            as_attachment=False,
+            download_name=f'receipt_{receipt_id}.pdf'
+        )
 
     # Create database tables
     with app.app_context():

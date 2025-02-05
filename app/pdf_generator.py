@@ -17,8 +17,13 @@ class ExpenseReportGenerator:
     def generate_report(self, expenses, travel_details=None, comment=None):
         # Generate unique filename
         report_id = f"{self.user_name.lower().replace(' ', '')}-{datetime.now().strftime('%Y-%m-%d')}-{uuid.uuid4().hex[:6]}"
-        temp_path = f"app/temp/{report_id}_summary.pdf"
-        os.makedirs("app/temp", exist_ok=True)
+        
+        # Create absolute path for temp directory
+        base_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+        temp_dir = os.path.join(base_dir, 'temp')
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        temp_path = os.path.join(temp_dir, f"{report_id}_summary.pdf")
         
         doc = SimpleDocTemplate(
             temp_path,
@@ -115,7 +120,7 @@ class ExpenseReportGenerator:
         for receipt in receipt_files:
             merger.append(receipt)
         
-        # Generate final PDF path
+        # Generate final PDF path in the same directory as summary_pdf
         final_path = summary_pdf.replace('_summary.pdf', '_complete.pdf')
         
         # Write the complete PDF
