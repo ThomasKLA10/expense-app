@@ -11,6 +11,8 @@ from flask import abort
 from datetime import datetime, timezone
 import logging
 from .pdf_generator import ExpenseReportGenerator
+from PIL import Image
+import io
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
 
@@ -419,7 +421,18 @@ def create_app():
                     filename = secure_filename(file.filename)
                     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(filepath)
-                    receipt_paths.append(filepath)
+                    
+                    # Check if file is an image
+                    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                        # Convert image to PDF
+                        img = Image.open(filepath)
+                        pdf_path = filepath.rsplit('.', 1)[0] + '.pdf'
+                        img.save(pdf_path, 'PDF', resolution=100.0)
+                        receipt_paths.append(pdf_path)
+                        # Clean up original image file
+                        os.remove(filepath)
+                    else:
+                        receipt_paths.append(filepath)
             
             # Merge summary with receipts
             final_pdf_path = ExpenseReportGenerator.merge_with_receipts(summary_pdf_path, receipt_paths)
