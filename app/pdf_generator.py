@@ -3,12 +3,15 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 import os
 from PyPDF2 import PdfMerger
 from datetime import datetime
 import uuid
 from PIL import Image
 import io
+from reportlab.graphics.shapes import Drawing, String
 
 class ExpenseReportGenerator:
     def __init__(self, user_name, expense_type='other'):
@@ -17,24 +20,113 @@ class ExpenseReportGenerator:
         self.styles = getSampleStyleSheet()
         
     def generate_report(self, expenses, travel_details=None, comment=None):
-        # Generate unique filename
-        report_id = f"{self.user_name.lower().replace(' ', '')}-{datetime.now().strftime('%Y-%m-%d')}-{uuid.uuid4().hex[:6]}"
+        print("\n=== PDF GENERATION DEBUG ===")
+        print("1. Initial Setup")
         
         # Create absolute path for temp directory
         base_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
         temp_dir = os.path.join(base_dir, 'temp')
         os.makedirs(temp_dir, exist_ok=True)
         
-        temp_path = os.path.join(temp_dir, f"{report_id}_summary.pdf")
+        # Generate unique filename and receipt number
+        report_id = f"{self.user_name.lower().replace(' ', '')}-{datetime.now().strftime('%Y-%m-%d')}-{uuid.uuid4().hex[:6]}"
+        receipt_number = f"{self.user_name.lower().replace(' ', '')}-{datetime.now().strftime('%Y-%m')}-n{uuid.uuid4().hex[:3]}a"
+        final_pdf = os.path.join(temp_dir, f"{report_id}_summary.pdf")
         
+        # Create document with SMALLER top margin
         doc = SimpleDocTemplate(
-            temp_path,
+            final_pdf,
             pagesize=A4,
-            rightMargin=72,
+            rightMargin=30,  # Reduced right margin
             leftMargin=72,
-            topMargin=72,
+            topMargin=30,    # Reduced top margin
             bottomMargin=72
         )
+        
+        story = []
+        
+        # Create header table
+        from reportlab.graphics.shapes import Drawing, String
+        
+        # Create the drawing for B&B with just a small offset
+        logo_width = 300
+        logo_height = 60
+        d = Drawing(logo_width, logo_height)
+        logo = String(20, 10, 'B&B', fontName='Times-Bold', fontSize=52)  # Just 20 points offset instead of 72
+        d.add(logo)
+        
+        # Format receipt number and date
+        current_date = datetime.now().strftime('%d.%m.%Y')
+        
+        header_data = [
+            [
+                d,
+                Paragraph(
+                    f"Rechnungsnummer: {receipt_number}<br/>"
+                    f"Datum: {current_date}",
+                    ParagraphStyle(
+                        'Receipt',
+                        fontName='Helvetica',
+                        fontSize=10,
+                        alignment=2,
+                        rightIndent=0,
+                        spaceBefore=0,
+                        spaceAfter=0,
+                        leading=12
+                    )
+                )
+            ]
+        ]
+        
+        # Adjust table to remove left padding
+        header_table = Table(header_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('RIGHTPADDING', (1, 0), (1, 0), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),  # Remove left padding
+        ]))
+        
+        story.append(header_table)
+        story.append(Spacer(1, 12))
+        
+        # Add "Expense claim" subtitle
+        story.append(Paragraph("Expense claim", ParagraphStyle(
+            'Subtitle',
+            fontName='Helvetica',
+            fontSize=18,
+            leading=22,
+            spaceAfter=30
+        )))
+        
+        # Add employee info
+        story.append(Paragraph("Employee", self.styles['Heading2']))
+        story.append(Paragraph(self.user_name, self.styles['Normal']))
+        story.append(Spacer(1, 20))
+        
+        # Add comment if exists
+        if comment:
+            story.append(Paragraph("Comment", self.styles['Heading2']))
+            story.append(Paragraph(comment, self.styles['Normal']))
+            story.append(Spacer(1, 20))
+        
+        # Add travel details if exists
+        if travel_details:
+            # Convert dates to European format (DD-MM-YYYY)
+            departure_date = datetime.strptime(travel_details['departure'], '%Y-%m-%d').strftime('%d-%m-%Y')
+            return_date = datetime.strptime(travel_details['return'], '%Y-%m-%d').strftime('%d-%m-%Y')
+            
+            travel_info = [
+                Paragraph(f"Purpose: {travel_details['purpose']}", self.styles['Normal']),
+                Paragraph(f"From: {travel_details['from']}", self.styles['Normal']),
+                Paragraph(f"To: {travel_details['to']}", self.styles['Normal']),
+                Paragraph(f"Departure: {departure_date}", self.styles['Normal']),
+                Paragraph(f"Return: {return_date}", self.styles['Normal'])
+            ]
+            story.extend(travel_info)
+            story.append(Spacer(1, 20))
         
         # Create the table data
         table_data = [
@@ -80,48 +172,12 @@ class ExpenseReportGenerator:
         expense_table.setStyle(style)
         
         # Build the story
-        story = []
-        
-        # Add header
-        story.append(Paragraph("B&B;", self.styles['Title']))
-        story.append(Spacer(1, 12))
-        story.append(Paragraph("Expense claim", self.styles['Title']))
-        story.append(Spacer(1, 20))
-        
-        # Add employee info
-        story.append(Paragraph("Employee", self.styles['Heading2']))
-        story.append(Paragraph(self.user_name, self.styles['Normal']))
-        story.append(Spacer(1, 20))
-        
-        # Add comment if exists
-        if comment:
-            story.append(Paragraph("Comment", self.styles['Heading2']))
-            story.append(Paragraph(comment, self.styles['Normal']))
-            story.append(Spacer(1, 20))
-        
-        # Add travel details if exists
-        if travel_details:
-            # Convert dates to European format (DD-MM-YYYY)
-            departure_date = datetime.strptime(travel_details['departure'], '%Y-%m-%d').strftime('%d-%m-%Y')
-            return_date = datetime.strptime(travel_details['return'], '%Y-%m-%d').strftime('%d-%m-%Y')
-            
-            travel_info = [
-                Paragraph(f"Purpose: {travel_details['purpose']}", self.styles['Normal']),
-                Paragraph(f"From: {travel_details['from']}", self.styles['Normal']),
-                Paragraph(f"To: {travel_details['to']}", self.styles['Normal']),
-                Paragraph(f"Departure: {departure_date}", self.styles['Normal']),
-                Paragraph(f"Return: {return_date}", self.styles['Normal'])
-            ]
-            story.extend(travel_info)
-            story.append(Spacer(1, 20))
-        
-        # Add expenses table
-        story.append(Paragraph("Expenses", self.styles['Heading2']))
         story.append(expense_table)
         
-        # Generate the PDF
+        # Build the document
         doc.build(story)
-        return temp_path, report_id
+        
+        return final_pdf, report_id
     
     @staticmethod
     def merge_with_receipts(summary_pdf, receipt_paths):
