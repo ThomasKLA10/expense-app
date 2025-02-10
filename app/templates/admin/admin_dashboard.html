@@ -24,7 +24,7 @@
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Comment</th>
+                            <th>Name</th>
                             <th>Category</th>
                             <th>Total</th>
                             <th>Status</th>
@@ -36,7 +36,7 @@
                             {% for receipt in pending_receipts.items %}
                             <tr>
                                 <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
-                                <td>{{ receipt.comment|default('None')|title }}</td>
+                                <td>{{ receipt.user.name }}</td>
                                 <td>{{ receipt.category|title }}</td>
                                 <td>{{ "%.2f"|format(receipt.amount) }} {{ receipt.currency }}</td>
                                 <td>
@@ -77,8 +77,20 @@
 
     <!-- Processed Receipts -->
     <div class="card mb-4">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Processed Receipts</h5>
+            <div class="d-flex align-items-center">
+                <input type="text" 
+                       class="form-control form-control-sm" 
+                       placeholder="Search by name" 
+                       name="search" 
+                       value="{{ request.args.get('search', '') }}"
+                       autocomplete="off"
+                       style="width: 200px;">
+                <button class="btn btn-sm btn-primary ms-2">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -86,7 +98,7 @@
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Comment</th>
+                            <th>Name</th>
                             <th>Category</th>
                             <th>Total</th>
                             <th>Status</th>
@@ -98,7 +110,7 @@
                             {% for receipt in processed_receipts.items %}
                             <tr>
                                 <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
-                                <td>{{ receipt.comment|default('None')|title }}</td>
+                                <td>{{ receipt.user.name }}</td>
                                 <td>{{ receipt.category|title }}</td>
                                 <td>{{ "%.2f"|format(receipt.amount) }} {{ receipt.currency }}</td>
                                 <td>

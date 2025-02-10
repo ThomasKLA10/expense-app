@@ -218,6 +218,7 @@ def create_app():
     def admin_dashboard():
         page_pending = request.args.get('page_pending', 1, type=int)
         page_processed = request.args.get('page_processed', 1, type=int)
+        search = request.args.get('search', '')
         per_page = 6
 
         # Get pending receipts
@@ -229,10 +230,19 @@ def create_app():
             error_out=False
         )
 
-        # Get processed receipts
-        processed_receipts = Receipt.query.filter(
+        # Get processed receipts with search
+        processed_query = Receipt.query.join(User).filter(
             Receipt.status.in_(['approved', 'rejected'])
-        ).order_by(Receipt.date_submitted.desc()).paginate(
+        )
+        
+        if search:
+            processed_query = processed_query.filter(
+                User.name.ilike(f'%{search}%')
+            )
+        
+        processed_receipts = processed_query.order_by(
+            Receipt.date_submitted.desc()
+        ).paginate(
             page=page_processed,
             per_page=per_page,
             error_out=False
