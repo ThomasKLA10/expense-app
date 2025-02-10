@@ -6,6 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BB Expense App</title>
     
+    <style>
+        link[rel="icon"] {
+            border-radius: 50%;
+        }
+    </style>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.png') }}">
+    
     <!-- Critical CSS that must load first -->
     <style>
         /* Hide all content initially */
