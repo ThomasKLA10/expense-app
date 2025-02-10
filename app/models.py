@@ -19,29 +19,24 @@ class User(UserMixin, db.Model):
 class Receipt(db.Model):
     __tablename__ = 'receipt'
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     currency = db.Column(db.String(3), nullable=False)
-    category = db.Column(db.String(50), nullable=False)
+    category = db.Column(db.String(50))
     purpose = db.Column(db.String(200))
     travel_from = db.Column(db.String(100))
     travel_to = db.Column(db.String(100))
     departure_date = db.Column(db.Date)
     return_date = db.Column(db.Date)
-    file_path_db = db.Column(db.String(200), nullable=False)
-    date_submitted = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    file_path_db = db.Column(db.String(500))
+    date_submitted = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc))
     status = db.Column(db.String(20), default='pending')
-    office = db.Column(db.String(50), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     archived = db.Column(db.Boolean, default=False, nullable=False)
 
     @property
     def file_path(self):
         return os.path.basename(self.file_path_db)
-
-    @property
-    def office_display(self):
-        return "Office in Bonn"
 
     @classmethod
     def group_receipts(cls, receipts):

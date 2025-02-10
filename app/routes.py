@@ -32,15 +32,6 @@ def dashboard():
                           .all()
     return render_template('dashboard.html', receipts=receipts)
 
-@main.route('/office/<location>')
-@login_required
-def office(location):
-    receipts = Receipt.query.filter_by(
-        office=location,
-        user_id=current_user.id
-    ).order_by(Receipt.date_submitted.desc()).all()
-    return render_template('office.html', receipts=receipts, location=location)
-
 @main.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
@@ -82,7 +73,6 @@ def upload():
                     category=request.form.get('category', 'other'),
                     date_submitted=datetime.utcnow(),
                     status='pending',
-                    office='oslo',
                     purpose=request.form.get('purpose', '')
                 )
                 
@@ -214,8 +204,7 @@ def submit_expense():
             category=expense_type,
             purpose=descriptions[0] if descriptions else 'Multiple expenses',
             status='pending',
-            office='bonn',
-            file_path_db=final_pdf_path  # Store the path to the generated PDF
+            file_path_db=final_pdf_path
         )
         
         if expense_type == 'travel':

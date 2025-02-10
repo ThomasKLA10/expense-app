@@ -7,3 +7,30 @@
 .btn-lg {
     padding: 1rem 2rem;
 }
+
+/* Receipt details styling */
+.card-body dl.row {
+    margin-bottom: 0;
+}
+
+.card-body dt {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.card-body dd {
+    margin-bottom: 0;
+}
+
+.receipt-preview {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.receipt-iframe {
+    width: 100%;
+    min-height: 600px;
+    border: none;
+    background: #fff;
+}
