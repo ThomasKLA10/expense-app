@@ -43,11 +43,13 @@ class ExpenseReportGenerator:
         
         # Add expense rows
         for expense in expenses:
+            foreign_currency = f"{expense['original_currency']} {expense['original_amount']:.2f}" if 'original_currency' in expense and expense['original_currency'] != 'EUR' else ''
+            
             row = [
                 expense['date'],
                 expense['description'],
                 f"EUR {expense['amount']:.2f}",
-                f"{expense['original_currency']} {expense['original_amount']:.2f}" if 'original_amount' in expense else ''
+                foreign_currency
             ]
             table_data.append(row)
         
