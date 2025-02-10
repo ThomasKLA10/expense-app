@@ -99,10 +99,18 @@ class ExpenseReportGenerator:
         
         # Add travel details if exists
         if travel_details:
-            story.append(Paragraph("Travel Details", self.styles['Heading2']))
-            for key, value in travel_details.items():
-                if value:  # Only add if value exists
-                    story.append(Paragraph(f"{key.capitalize()}: {value}", self.styles['Normal']))
+            # Convert dates to European format (DD-MM-YYYY)
+            departure_date = datetime.strptime(travel_details['departure'], '%Y-%m-%d').strftime('%d-%m-%Y')
+            return_date = datetime.strptime(travel_details['return'], '%Y-%m-%d').strftime('%d-%m-%Y')
+            
+            travel_info = [
+                Paragraph(f"Purpose: {travel_details['purpose']}", self.styles['Normal']),
+                Paragraph(f"From: {travel_details['from']}", self.styles['Normal']),
+                Paragraph(f"To: {travel_details['to']}", self.styles['Normal']),
+                Paragraph(f"Departure: {departure_date}", self.styles['Normal']),
+                Paragraph(f"Return: {return_date}", self.styles['Normal'])
+            ]
+            story.extend(travel_info)
             story.append(Spacer(1, 20))
         
         # Add expenses table

@@ -429,21 +429,23 @@ def create_app():
             # Calculate total in EUR (already converted in frontend)
             total_eur = sum(float(amount) for amount in amounts)
             
-            # Create receipt record
+            # Get travel details if it's a travel expense
+            travel_purpose = request.form.get('purpose') if expense_type == 'travel' else None
+            
             receipt = Receipt(
                 user_id=current_user.id,
                 amount=total_eur,
                 currency='EUR',
                 category=expense_type,
-                purpose=descriptions[0] if descriptions else 'Multiple expenses',
                 status='pending',
                 file_path_db=final_pdf_path,
-                comment=request.form.get('comment'),
+                comment=travel_purpose if expense_type == 'travel' else request.form.get('comment'),  # Use purpose as comment for travel
                 date_submitted=current_time,
                 updated_at=current_time
             )
             
             if expense_type == 'travel':
+                receipt.travel_purpose = travel_purpose
                 receipt.travel_from = request.form.get('from')
                 receipt.travel_to = request.form.get('to')
                 receipt.departure_date = datetime.strptime(request.form.get('departure'), '%Y-%m-%d').date() if request.form.get('departure') else None

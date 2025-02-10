@@ -18,19 +18,37 @@
 <div id="travel-details" class="mb-4 d-none">
     <div class="row g-3">
         <div class="col-md-12">
-            <input type="text" class="form-control" name="purpose" placeholder="Purpose: Client workshop">
+            <div class="form-group">
+                <label for="purpose" class="form-label">Purpose:</label>
+                <input type="text" class="form-control" name="purpose" id="purpose" 
+                       placeholder="Client workshop" autocomplete="off">
+            </div>
         </div>
         <div class="col-md-6">
-            <input type="text" class="form-control" name="from" placeholder="From: Bonn">
+            <div class="form-group">
+                <label for="from" class="form-label">From:</label>
+                <input type="text" class="form-control" name="from" id="from" 
+                       placeholder="Bonn" autocomplete="off">
+            </div>
         </div>
         <div class="col-md-6">
-            <input type="text" class="form-control" name="to" placeholder="To: Oslo">
+            <div class="form-group">
+                <label for="to" class="form-label">To:</label>
+                <input type="text" class="form-control" name="to" id="to" 
+                       placeholder="Oslo" autocomplete="off">
+            </div>
         </div>
         <div class="col-md-6">
-            <input type="date" class="form-control" name="departure">
+            <div class="form-group">
+                <label for="departure" class="form-label">Departure Date:</label>
+                <input type="date" class="form-control" name="departure" id="departure">
+            </div>
         </div>
         <div class="col-md-6">
-            <input type="date" class="form-control" name="return">
+            <div class="form-group">
+                <label for="return" class="form-label">Return Date:</label>
+                <input type="date" class="form-control" name="return" id="return">
+            </div>
         </div>
     </div>
 </div>

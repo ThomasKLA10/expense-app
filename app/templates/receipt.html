@@ -26,13 +26,15 @@
                         <dd class="col-7">{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</dd>
                         
                         <dt class="col-5">Category:</dt>
-                        <dd class="col-7">{{ receipt.category }}</dd>
+                        <dd class="col-7">{{ receipt.category|title }}</dd>
                         
                         <dt class="col-5">Comment:</dt>
-                        <dd class="col-7">{{ receipt.comment or 'No comment provided' }}</dd>
+                        <dd class="col-7">
+                            {{ receipt.comment|title or 'No comment provided' }}
+                        </dd>
                         
                         <dt class="col-5">Status:</dt>
-                        <dd class="col-7">{{ receipt.status }}</dd>
+                        <dd class="col-7">{{ receipt.status|title }}</dd>
                         
                         <dt class="col-5">Submitted By:</dt>
                         <dd class="col-7">{{ receipt.user.name }}</dd>
