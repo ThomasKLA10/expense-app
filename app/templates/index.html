@@ -1,5 +1,17 @@
 {% extends "base.html" %}
 
+{% block head %}
+{{ super() }}
+<style>
+    link[rel="icon"] {
+        border-radius: 50%;
+    }
+</style>
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.png') }}">
+<link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.png') }}">
+{% endblock %}
+
 {% block content %}
 <div class="welcome-container">
     <div class="text-center">
