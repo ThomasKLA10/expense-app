@@ -13,7 +13,7 @@
         </div>
     </div>
 
-    <!-- Pending Receipts Section -->
+    <!-- Pending Receipts -->
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">Pending Receipts</h5>
@@ -24,141 +24,120 @@
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>User</th>
-                            <th>Amount</th>
+                            <th>Comment</th>
                             <th>Category</th>
-                            <th>Office</th>
+                            <th>Total</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for receipt in receipts if receipt.status == 'pending' %}
-                        <tr>
-                            <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
-                            <td>{{ receipt.user.name }}</td>
-                            <td>{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</td>
-                            <td>{{ receipt.category }}</td>
-                            <td>{{ receipt.office }}</td>
-                            <td>
-                                <span class="badge bg-warning">{{ receipt.status }}</span>
-                            </td>
-                            <td>
-                                <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
-                                   class="btn btn-sm btn-primary">Review</a>
-                            </td>
-                        </tr>
+                        {% if pending_receipts.items %}
+                            {% for receipt in pending_receipts.items %}
+                            <tr>
+                                <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
+                                <td>{{ receipt.comment|default('None')|title }}</td>
+                                <td>{{ receipt.category|title }}</td>
+                                <td>{{ "%.2f"|format(receipt.amount) }} {{ receipt.currency }}</td>
+                                <td>
+                                    <span class="badge bg-warning">{{ receipt.status }}</span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
+                                       class="btn btn-sm btn-primary">Review</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
                         {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center">No pending receipts</td>
-                        </tr>
-                        {% endfor %}
+                            <tr>
+                                <td colspan="6" class="text-center">No pending receipts</td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
+
+            {% if pending_receipts.pages > 1 %}
+            <div class="d-flex justify-content-center mt-3">
+                <nav>
+                    <ul class="pagination">
+                        {% for page in range(1, pending_receipts.pages + 1) %}
+                        <li class="page-item {% if page == pending_receipts.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin_dashboard', page_pending=page, page_processed=request.args.get('page_processed', 1)) }}">
+                                {{ page }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Archived Receipts Accordion -->
-    <div class="accordion" id="archivedReceipts">
-        <!-- Approved Receipts -->
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#approvedReceipts">
-                    Approved Receipts
-                </button>
-            </h2>
-            <div id="approvedReceipts" class="accordion-collapse collapse" data-bs-parent="#archivedReceipts">
-                <div class="accordion-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>User</th>
-                                    <th>Amount</th>
-                                    <th>Category</th>
-                                    <th>Office</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for receipt in receipts if receipt.status == 'approved' %}
-                                <tr>
-                                    <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
-                                    <td>{{ receipt.user.name }}</td>
-                                    <td>{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</td>
-                                    <td>{{ receipt.category }}</td>
-                                    <td>{{ receipt.office }}</td>
-                                    <td>
-                                        <span class="badge bg-success">{{ receipt.status }}</span>
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
-                                           class="btn btn-sm btn-primary">Review</a>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="7" class="text-center">No approved receipts</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <!-- Processed Receipts -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Processed Receipts</h5>
         </div>
-
-        <!-- Rejected Receipts -->
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rejectedReceipts">
-                    Rejected Receipts
-                </button>
-            </h2>
-            <div id="rejectedReceipts" class="accordion-collapse collapse" data-bs-parent="#archivedReceipts">
-                <div class="accordion-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>User</th>
-                                    <th>Amount</th>
-                                    <th>Category</th>
-                                    <th>Office</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for receipt in receipts if receipt.status == 'rejected' %}
-                                <tr>
-                                    <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
-                                    <td>{{ receipt.user.name }}</td>
-                                    <td>{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</td>
-                                    <td>{{ receipt.category }}</td>
-                                    <td>{{ receipt.office }}</td>
-                                    <td>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Comment</th>
+                            <th>Category</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if processed_receipts.items %}
+                            {% for receipt in processed_receipts.items %}
+                            <tr>
+                                <td>{{ receipt.date_submitted.strftime('%d.%m.%Y') }}</td>
+                                <td>{{ receipt.comment|default('None')|title }}</td>
+                                <td>{{ receipt.category|title }}</td>
+                                <td>{{ "%.2f"|format(receipt.amount) }} {{ receipt.currency }}</td>
+                                <td>
+                                    {% if receipt.status == 'approved' %}
+                                        <span class="badge bg-success">{{ receipt.status }}</span>
+                                    {% else %}
                                         <span class="badge bg-danger">{{ receipt.status }}</span>
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
-                                           class="btn btn-sm btn-primary">Review</a>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="7" class="text-center">No rejected receipts</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
+                                       class="btn btn-sm btn-primary">Review</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center">No processed receipts</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
+
+            {% if processed_receipts.pages > 1 %}
+            <div class="d-flex justify-content-center mt-3">
+                <nav>
+                    <ul class="pagination">
+                        {% for page in range(1, processed_receipts.pages + 1) %}
+                        <li class="page-item {% if page == processed_receipts.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin_dashboard', page_processed=page, page_pending=request.args.get('page_pending', 1)) }}">
+                                {{ page }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

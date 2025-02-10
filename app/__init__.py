@@ -216,8 +216,31 @@ def create_app():
     @app.route('/admin')
     @admin_required
     def admin_dashboard():
-        receipts = Receipt.query.order_by(Receipt.date_submitted.desc()).all()
-        return render_template('admin/admin_dashboard.html', receipts=receipts)
+        page_pending = request.args.get('page_pending', 1, type=int)
+        page_processed = request.args.get('page_processed', 1, type=int)
+        per_page = 6
+
+        # Get pending receipts
+        pending_receipts = Receipt.query.filter_by(
+            status='pending'
+        ).order_by(Receipt.date_submitted.desc()).paginate(
+            page=page_pending,
+            per_page=per_page,
+            error_out=False
+        )
+
+        # Get processed receipts
+        processed_receipts = Receipt.query.filter(
+            Receipt.status.in_(['approved', 'rejected'])
+        ).order_by(Receipt.date_submitted.desc()).paginate(
+            page=page_processed,
+            per_page=per_page,
+            error_out=False
+        )
+
+        return render_template('admin/admin_dashboard.html',
+                             pending_receipts=pending_receipts,
+                             processed_receipts=processed_receipts)
 
     @app.route('/receipt/<int:receipt_id>/archive', methods=['POST'])
     @login_required
