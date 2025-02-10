@@ -380,16 +380,17 @@ def create_app():
             expense_type = request.form.get('expense-type', 'other')
             receipt_files = request.files.getlist('receipt[]')
             
-            # Create list of expenses for PDF generation
+            # Prepare expense data for PDF
             expenses = []
             for i in range(len(dates)):
-                expenses.append({
+                expense = {
                     'date': dates[i],
                     'description': descriptions[i],
-                    'amount': float(amounts[i]),
-                    'currency': 'EUR',
-                    'original_amount': float(amounts[i])
-                })
+                    'amount': float(amounts[i]),  # EUR amount
+                    'original_currency': request.form.getlist('currency[]')[i],  # Original currency
+                    'original_amount': float(request.form.getlist('original_amount[]')[i])  # Original amount
+                }
+                expenses.append(expense)
             
             # Get travel details if applicable
             travel_details = None
