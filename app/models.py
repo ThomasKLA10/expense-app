@@ -33,6 +33,7 @@ class Receipt(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc))
     status = db.Column(db.String(20), default='pending')
     archived = db.Column(db.Boolean, default=False, nullable=False)
+    comment = db.Column(db.String(500))
 
     @property
     def file_path(self):

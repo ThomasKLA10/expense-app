@@ -140,13 +140,10 @@ def process_ocr():
 def submit_expense():
     try:
         # Get form data
-        expense_type = request.form.get('expense-type', 'other')
-        
-        # Get expense lines
         dates = request.form.getlist('date[]')
+        amounts = request.form.getlist('amount[]')
         descriptions = request.form.getlist('description[]')
-        amounts = request.form.getlist('amount[]')  # These are already in EUR from the frontend
-        currencies = request.form.getlist('currency[]')
+        expense_type = request.form.get('expense-type', 'other')
         receipt_files = request.files.getlist('receipt[]')
         
         # Prepare expenses data for PDF
@@ -204,9 +201,11 @@ def submit_expense():
             category=expense_type,
             purpose=descriptions[0] if descriptions else 'Multiple expenses',
             status='pending',
-            file_path_db=final_pdf_path
+            file_path_db=final_pdf_path,
+            comment=comment
         )
         
+        # Add travel details if applicable
         if expense_type == 'travel':
             receipt.travel_from = request.form.get('from')
             receipt.travel_to = request.form.get('to')

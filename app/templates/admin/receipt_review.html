@@ -20,13 +20,16 @@
                     <h5 class="card-title mb-4">Receipt Details</h5>
                     <dl class="row g-3">
                         <dt class="col-5">Date Submitted:</dt>
-                        <dd class="col-7">{{ receipt.date_submitted.strftime('%d-%m-%Y') }}</dd>
+                        <dd class="col-7">{{ receipt.date_submitted.strftime('%d-%m-%Y %H:%M') }}</dd>
                         
                         <dt class="col-5">Amount:</dt>
                         <dd class="col-7">{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</dd>
                         
                         <dt class="col-5">Category:</dt>
                         <dd class="col-7">{{ receipt.category }}</dd>
+                        
+                        <dt class="col-5">Comment:</dt>
+                        <dd class="col-7">{{ receipt.comment or 'No comment provided' }}</dd>
                         
                         <dt class="col-5">Status:</dt>
                         <dd class="col-7">{{ receipt.status }}</dd>

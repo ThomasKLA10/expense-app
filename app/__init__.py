@@ -8,7 +8,7 @@ from .ocr import ReceiptScanner
 from werkzeug.utils import secure_filename
 from functools import wraps
 from flask import abort
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import logging
 from .pdf_generator import ExpenseReportGenerator
 from PIL import Image
@@ -370,15 +370,15 @@ def create_app():
     @login_required
     def submit_expense():
         try:
-            # Get form data
-            expense_type = request.form.get('expense-type', 'other')
+            # Get German time by adding 1 hour to UTC
+            current_time = datetime.utcnow() + timedelta(hours=1)
             
-            # Get expense lines
+            # Get form data
             dates = request.form.getlist('date[]')
-            descriptions = request.form.getlist('description[]')
             amounts = request.form.getlist('amount[]')
-            currencies = request.form.getlist('currency[]')
-            original_amounts = request.form.getlist('original_amount[]')
+            descriptions = request.form.getlist('description[]')
+            expense_type = request.form.get('expense-type', 'other')
+            receipt_files = request.files.getlist('receipt[]')
             
             # Create list of expenses for PDF generation
             expenses = []
@@ -387,8 +387,8 @@ def create_app():
                     'date': dates[i],
                     'description': descriptions[i],
                     'amount': float(amounts[i]),
-                    'currency': currencies[i],
-                    'original_amount': float(original_amounts[i]) if currencies[i] != 'EUR' else float(amounts[i])
+                    'currency': 'EUR',
+                    'original_amount': float(amounts[i])
                 })
             
             # Get travel details if applicable
@@ -414,7 +414,6 @@ def create_app():
             )
             
             # Save receipt files and merge with summary
-            receipt_files = request.files.getlist('receipt[]')
             receipt_paths = []
             for file in receipt_files:
                 if file and allowed_file(file.filename):
@@ -437,8 +436,10 @@ def create_app():
                 category=expense_type,
                 purpose=descriptions[0] if descriptions else 'Multiple expenses',
                 status='pending',
-                office='bonn',
-                file_path_db=final_pdf_path
+                file_path_db=final_pdf_path,
+                comment=request.form.get('comment'),
+                date_submitted=current_time,
+                updated_at=current_time
             )
             
             if expense_type == 'travel':
