@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from . import db
 from .models import Receipt, User
 from flask_login import login_required, current_user
@@ -10,10 +10,14 @@ from .ocr import ReceiptScanner
 import logging
 from .pdf_generator import ExpenseReportGenerator
 from functools import wraps
+from .utils.email import send_reviewer_notification, send_receipt_status_notification
+from flask_mail import Mail, Message
 
 logger = logging.getLogger(__name__)
 
 main = Blueprint('main', __name__)
+
+mail = Mail()
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
@@ -216,6 +220,9 @@ def submit_expense():
         db.session.add(receipt)
         db.session.commit()
         
+        # Send notification to reviewers
+        send_reviewer_notification(receipt)
+        
         return jsonify({
             'success': True,
             'redirect': url_for('dashboard')
@@ -258,3 +265,36 @@ def toggle_admin(user_id):
     db.session.commit()
     flash(f'{"Added" if user.is_admin else "Removed"} admin role for {user.name}', 'success')
     return redirect(url_for('main.admin_users'))
+
+@main.route('/admin/receipt/<int:id>/<action>')
+@login_required
+def admin_receipt_action(id, action):
+    # ... existing permission checks ...
+    
+    receipt = Receipt.query.get_or_404(id)
+    if action in ['approve', 'reject']:
+        receipt.status = 'approved' if action == 'approve' else 'rejected'
+        receipt.archived = True
+        receipt.updated_at = datetime.now(timezone.utc)
+        db.session.commit()
+        
+        # Send notification to user
+        send_receipt_status_notification(receipt)
+        
+        return redirect(url_for('admin_dashboard'))
+
+@main.route('/test_email')
+@login_required
+def test_email():
+    try:
+        msg = Message(
+            subject="Test Email",
+            recipients=[current_user.email],
+            body="This is a test email from the BB Receipt App",
+            html="<h1>Test Email</h1><p>This is a test email from the BB Receipt App</p>"
+        )
+        mail.send(msg)
+        flash('Test email sent successfully!', 'success')
+    except Exception as e:
+        flash(f'Error sending email: {str(e)}', 'error')
+    return redirect(url_for('index'))

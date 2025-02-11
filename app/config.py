@@ -17,6 +17,14 @@ class Config:
     GOOGLE_CLOUD_PROJECT = os.environ.get('GOOGLE_CLOUD_PROJECT')
     GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
     
+    # Email Settings for testing with Gmail
+    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = 'your-gmail@gmail.com'
+    MAIL_PASSWORD = 'your-app-specific-password'  # Use App Password from Google Account
+    MAIL_DEFAULT_SENDER = ('BB Receipt App', 'your-gmail@gmail.com')
+    
     @staticmethod
     def get_current_time():
         return datetime.utcnow() + timedelta(hours=1)  # German time is UTC+1

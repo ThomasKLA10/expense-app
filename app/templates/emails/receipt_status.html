@@ -1,0 +1,4 @@
+<h2>Receipt {{ receipt.status.title() }}</h2>
+<p>Your receipt submitted on {{ receipt.date_submitted.strftime('%Y-%m-%d') }} has been {{ receipt.status }}.</p>
+<p>Amount: {{ receipt.currency }} {{ receipt.amount }}</p>
+<p><a href="{{ receipt_url }}">View receipt details</a></p> 

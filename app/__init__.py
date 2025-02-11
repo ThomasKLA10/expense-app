@@ -13,6 +13,7 @@ import logging
 from .pdf_generator import ExpenseReportGenerator
 from PIL import Image
 import io
+from .utils.email import mail
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
 
@@ -42,6 +43,9 @@ def create_app():
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
+    
+    # Initialize Flask-Mail
+    mail.init_app(app)
     
     # Register blueprints
     from .auth import auth as auth_blueprint
