@@ -12,6 +12,7 @@ import uuid
 from PIL import Image
 import io
 from reportlab.graphics.shapes import Drawing, String
+from reportlab.lib.enums import TA_RIGHT
 
 class ExpenseReportGenerator:
     def __init__(self, user_name, expense_type='other'):
@@ -36,14 +37,13 @@ class ExpenseReportGenerator:
         receipt_number = f"{first_name}-{datetime.now().strftime('%Y-%m')}-n{uuid.uuid4().hex[:3]}a"
         final_pdf = os.path.join(temp_dir, f"{report_id}_summary.pdf")
         
-        # Create document with SMALLER top margin
+        # Adjust document margins
         doc = SimpleDocTemplate(
             final_pdf,
             pagesize=A4,
-            rightMargin=30,  # Reduced right margin
-            leftMargin=72,
-            topMargin=30,    # Reduced top margin
-            bottomMargin=72
+            leftMargin=30,  # Reduced from default (usually around 72)
+            rightMargin=30,  # Reduced from default
+            topMargin=30,   # Reduced from default
         )
         
         story = []
@@ -51,82 +51,142 @@ class ExpenseReportGenerator:
         # Create header table
         from reportlab.graphics.shapes import Drawing, String
         
-        # Create the drawing for B&B with smaller offset
+        # Create the drawing for B&B with more elegant styling
         logo_width = 300
-        logo_height = 60
+        logo_height = 40
         d = Drawing(logo_width, logo_height)
-        logo = String(5, 10, 'B&B', fontName='Times-Bold', fontSize=52)  # Changed from 20 to 10
+        logo = String(0, 5, 'B&B', fontName='Times-Bold', fontSize=56)
         d.add(logo)
         
         # Format receipt number and date
         current_date = datetime.now().strftime('%d.%m.%Y')
         
-        header_data = [
-            [
-                d,
-                Paragraph(
-                    f"Rechnungsnummer: {receipt_number}<br/>"
-                    f"Datum: {current_date}",
-                    ParagraphStyle(
-                        'Receipt',
-                        fontName='Helvetica',
-                        fontSize=10,
-                        alignment=2,
-                        rightIndent=0,
-                        spaceBefore=0,
-                        spaceAfter=0,
-                        leading=12
-                    )
-                )
-            ]
-        ]
+        # More elegant styles for text elements
+        receipt_style = ParagraphStyle(
+            'Receipt',
+            fontName='Helvetica',  # Changed from Helvetica-Light to standard Helvetica
+            fontSize=10,
+            alignment=2,
+            rightIndent=0,
+            spaceBefore=0,
+            spaceAfter=0,
+            leading=12
+        )
         
-        # Adjust table to remove left padding
-        header_table = Table(header_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-            ('RIGHTPADDING', (1, 0), (1, 0), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),  # Remove left padding
-        ]))
-        
-        story.append(header_table)
-        story.append(Spacer(1, 12))
-        
-        # Add "Expense claim" subtitle
-        story.append(Paragraph("Expense claim", ParagraphStyle(
-            'Subtitle',
+        title_style = ParagraphStyle(
+            'Title',
             fontName='Helvetica',
             fontSize=18,
             leading=22,
-            spaceAfter=30
-        )))
+            spaceBefore=6,
+            spaceAfter=16
+        )
+        
+        heading_style = ParagraphStyle(
+            'Heading2',
+            fontName='Helvetica-Bold',
+            fontSize=12,
+            leading=14,
+            spaceBefore=6,
+            spaceAfter=4
+        )
+        
+        normal_style = ParagraphStyle(
+            'Normal',
+            fontName='Helvetica',  # Changed from Helvetica-Light to standard Helvetica
+            fontSize=11,
+            leading=13
+        )
+        
+        # Create styles with darker, bolder labels
+        label_style = ParagraphStyle(
+            'Label',
+            fontName='Helvetica-Bold',  # Bold font
+            fontSize=11,
+            textColor=colors.HexColor('#1a1a1a'),  # Darker text
+            leading=14
+        )
+        
+        # Table styles with standard fonts
+        table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E8E8E8')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#333333')),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC'))
+        ])
+        
+        # Add negative space at the top of the page
+        story.append(Spacer(1, -20))  # This will pull everything up
+        
+        # Create two separate paragraphs for header info
+        rechnungsnummer = Paragraph(
+            f"Rechnungsnummer: {receipt_number}",
+            ParagraphStyle(
+                'RightStyle',
+                parent=self.styles['Normal'],
+                alignment=TA_RIGHT,
+                fontSize=10,
+                leading=12
+            )
+        )
+        
+        datum = Paragraph(
+            f"Datum: {current_date}",
+            ParagraphStyle(
+                'RightStyle',
+                parent=self.styles['Normal'],
+                alignment=TA_RIGHT,
+                fontSize=10,
+                leading=12
+            )
+        )
+
+        # Add them to the story
+        story.append(rechnungsnummer)
+        story.append(datum)
+        
+        story.append(d)
+        story.append(Spacer(1, -8))  # Reduced from -4 to -8 to bring "Expense claim" closer to B&B
+        
+        # Add "Expense claim" subtitle
+        story.append(Paragraph("Expense claim", title_style))
         
         # Add employee info
-        story.append(Paragraph("Employee", self.styles['Heading2']))
-        story.append(Paragraph(self.user_name, self.styles['Normal']))
+        story.append(Paragraph("Employee", heading_style))
+        story.append(Paragraph(self.user_name, normal_style))
         story.append(Spacer(1, 20))
         
         # Add comment if exists
         if comment:
-            story.append(Paragraph("Comment", self.styles['Heading2']))
-            story.append(Paragraph(comment, self.styles['Normal']))
+            story.append(Paragraph("Comment", heading_style))
+            story.append(Paragraph(comment, normal_style))
             story.append(Spacer(1, 20))
         
         # Add travel details if exists
         if travel_details:
-            # Convert dates to European format (DD-MM-YYYY)
-            departure_date = datetime.strptime(travel_details['departure'], '%Y-%m-%d').strftime('%d-%m-%Y')
-            return_date = datetime.strptime(travel_details['return'], '%Y-%m-%d').strftime('%d-%m-%Y')
+            # Convert dates to European format (DD.MM.YYYY)
+            departure_date = datetime.strptime(travel_details['departure'], '%Y-%m-%d').strftime('%d.%m.%Y')
+            return_date = datetime.strptime(travel_details['return'], '%Y-%m-%d').strftime('%d.%m.%Y')
             
             travel_info = [
-                Paragraph(f"Purpose: {travel_details['purpose']}", self.styles['Normal']),
-                Paragraph(f"From: {travel_details['from']}", self.styles['Normal']),
-                Paragraph(f"To: {travel_details['to']}", self.styles['Normal']),
-                Paragraph(f"Departure: {departure_date}", self.styles['Normal']),
-                Paragraph(f"Return: {return_date}", self.styles['Normal'])
+                Paragraph("Purpose:", label_style),
+                Paragraph(travel_details['purpose'], normal_style),
+                Paragraph("From:", label_style),
+                Paragraph(travel_details['from'], normal_style),
+                Paragraph("To:", label_style),
+                Paragraph(travel_details['to'], normal_style),
+                Paragraph("Departure:", label_style),
+                Paragraph(departure_date, normal_style),
+                Paragraph("Return:", label_style),
+                Paragraph(return_date, normal_style)
             ]
             story.extend(travel_info)
             story.append(Spacer(1, 20))
@@ -138,10 +198,13 @@ class ExpenseReportGenerator:
         
         # Add expense rows
         for expense in expenses:
+            # Convert date format from YYYY-MM-DD to DD.MM.YYYY
+            date = datetime.strptime(expense['date'], '%Y-%m-%d').strftime('%d.%m.%Y')
+            
             foreign_currency = f"{expense['original_currency']} {expense['original_amount']:.2f}" if 'original_currency' in expense and expense['original_currency'] != 'EUR' else ''
             
             row = [
-                expense['date'],
+                date,  # Using the reformatted date
                 expense['description'],
                 f"EUR {expense['amount']:.2f}",
                 foreign_currency
@@ -152,27 +215,9 @@ class ExpenseReportGenerator:
         total_eur = sum(expense['amount'] for expense in expenses)
         table_data.append(['', 'Total:', f"EUR {total_eur:.2f}", ''])
         
-        # Create table style
-        style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            # Style for total row
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ])
-        
         # Create the table
         expense_table = Table(table_data, colWidths=[80, 200, 100, 100])
-        expense_table.setStyle(style)
+        expense_table.setStyle(table_style)
         
         # Build the story
         story.append(expense_table)
