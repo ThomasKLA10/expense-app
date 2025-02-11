@@ -3,12 +3,13 @@ from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 from . import db
-from .models import Receipt
+from .models import Receipt, User
 from flask_login import login_required, current_user
 import importlib
 from .ocr import ReceiptScanner
 import logging
 from .pdf_generator import ExpenseReportGenerator
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -227,3 +228,33 @@ def submit_expense():
             'success': False,
             'error': str(e)
         }), 400
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+@main.route('/admin/users/toggle_reviewer/<int:user_id>', methods=['POST'])
+@admin_required
+def toggle_reviewer(user_id):
+    user = User.query.get_or_404(user_id)
+    user.is_reviewer = not user.is_reviewer
+    db.session.commit()
+    flash(f'{"Added" if user.is_reviewer else "Removed"} reviewer role for {user.name}', 'success')
+    return redirect(url_for('main.admin_users'))
+
+@main.route('/admin/users/toggle_admin/<int:user_id>', methods=['POST'])
+@admin_required
+def toggle_admin(user_id):
+    if user_id == current_user.id:
+        flash('You cannot modify your own admin status', 'error')
+        return redirect(url_for('main.admin_users'))
+    
+    user = User.query.get_or_404(user_id)
+    user.is_admin = not user.is_admin
+    db.session.commit()
+    flash(f'{"Added" if user.is_admin else "Removed"} admin role for {user.name}', 'success')
+    return redirect(url_for('main.admin_users'))

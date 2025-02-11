@@ -304,14 +304,36 @@ def create_app():
         users = User.query.order_by(User.name).all()
         return render_template('admin/users.html', users=users, current_user=current_user)
 
-    @app.route('/admin/users/<int:user_id>/toggle-admin', methods=['POST'])
+    @app.route('/admin/users/toggle_reviewer/<int:user_id>', methods=['POST'])
+    @admin_required
+    def toggle_reviewer(user_id):
+        user = User.query.get_or_404(user_id)
+        user.is_reviewer = not user.is_reviewer
+        db.session.commit()
+        return redirect(url_for('admin_users'))
+
+    @app.route('/admin/users/toggle_admin/<int:user_id>', methods=['POST'])
     @admin_required
     def toggle_admin(user_id):
-        if current_user.id == user_id:
+        if user_id == current_user.id:
             return redirect(url_for('admin_users'))
         
         user = User.query.get_or_404(user_id)
         user.is_admin = not user.is_admin
+        db.session.commit()
+        return redirect(url_for('admin_users'))
+
+    @app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
+    @admin_required
+    def delete_user(user_id):
+        if user_id == current_user.id:
+            return redirect(url_for('admin_users'))
+        
+        user = User.query.get_or_404(user_id)
+        # Delete all associated receipts first
+        Receipt.query.filter_by(user_id=user_id).delete()
+        # Then delete the user
+        db.session.delete(user)
         db.session.commit()
         return redirect(url_for('admin_users'))
 
@@ -524,6 +546,19 @@ def create_app():
             as_attachment=False,
             download_name=f'receipt_{receipt_id}.pdf'
         )
+
+    @app.route('/create-test-user')
+    @admin_required
+    def create_test_user():
+        test_user = User(
+            email='test@bakkenbaeck.no',
+            name='Test User',
+            is_admin=False,
+            is_reviewer=False
+        )
+        db.session.add(test_user)
+        db.session.commit()
+        return redirect(url_for('admin_users'))
 
     # Create database tables
     with app.app_context():

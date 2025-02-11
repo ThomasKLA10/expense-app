@@ -13,6 +13,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(120))
     is_admin = db.Column(db.Boolean, default=False)
+    is_reviewer = db.Column(db.Boolean, default=False)
     last_checked = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     receipts = db.relationship('Receipt', backref='user', lazy=True)
 
