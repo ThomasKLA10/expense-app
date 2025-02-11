@@ -28,9 +28,12 @@ class ExpenseReportGenerator:
         temp_dir = os.path.join(base_dir, 'temp')
         os.makedirs(temp_dir, exist_ok=True)
         
+        # Get first name only
+        first_name = self.user_name.split()[0].lower()  # Split name and take first part
+        
         # Generate unique filename and receipt number
-        report_id = f"{self.user_name.lower().replace(' ', '')}-{datetime.now().strftime('%Y-%m-%d')}-{uuid.uuid4().hex[:6]}"
-        receipt_number = f"{self.user_name.lower().replace(' ', '')}-{datetime.now().strftime('%Y-%m')}-n{uuid.uuid4().hex[:3]}a"
+        report_id = f"{first_name}-{datetime.now().strftime('%Y-%m-%d')}-{uuid.uuid4().hex[:6]}"
+        receipt_number = f"{first_name}-{datetime.now().strftime('%Y-%m')}-n{uuid.uuid4().hex[:3]}a"
         final_pdf = os.path.join(temp_dir, f"{report_id}_summary.pdf")
         
         # Create document with SMALLER top margin
@@ -48,11 +51,11 @@ class ExpenseReportGenerator:
         # Create header table
         from reportlab.graphics.shapes import Drawing, String
         
-        # Create the drawing for B&B with just a small offset
+        # Create the drawing for B&B with smaller offset
         logo_width = 300
         logo_height = 60
         d = Drawing(logo_width, logo_height)
-        logo = String(20, 10, 'B&B', fontName='Times-Bold', fontSize=52)  # Just 20 points offset instead of 72
+        logo = String(5, 10, 'B&B', fontName='Times-Bold', fontSize=52)  # Changed from 20 to 10
         d.add(logo)
         
         # Format receipt number and date
