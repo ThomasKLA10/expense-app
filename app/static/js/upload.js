@@ -321,11 +321,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-3">
                         <div class="input-group">
                             <div class="input-group-text p-0">
-                                <select class="form-select border-0 currency-select" style="width: 80px">
-                                    <option value="EUR">€</option>
-                                    <option value="USD">$</option>
-                                    <option value="GBP">£</option>
-                                    <option value="NOK">kr</option>
+                                <select class="form-select border-0 currency-select" style="width: 100px">
+                                    <option value="EUR">€ EUR</option>
+                                    <option value="USD">$ USD</option>
+                                    <option value="GBP">£ GBP</option>
+                                    <option value="NOK">kr NOK</option>
+                                    <option value="CHF">Fr. CHF</option>
+                                    <option value="DKK">kr DKK</option>
+                                    <option value="SEK">kr SEK</option>
+                                    <option value="HUF">Ft HUF</option>
+                                    <option value="AED">د.إ AED</option>
                                 </select>
                             </div>
                             <input type="number" class="form-control amount-input" step="0.01" placeholder="0.00">

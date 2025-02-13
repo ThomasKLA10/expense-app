@@ -2,9 +2,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     const currencyOptions = [
         { value: 'EUR', flag: 'eu', symbol: '€', label: 'EUR' },
-        { value: 'GBP', flag: 'gb', symbol: '£', label: 'GBP' },
         { value: 'NOK', flag: 'no', symbol: 'kr', label: 'NOK' },
-        { value: 'USD', flag: 'us', symbol: '$', label: 'USD' }
+        { value: 'USD', flag: 'us', symbol: '$', label: 'USD' },
+        { value: 'GBP', flag: 'gb', symbol: '£', label: 'GBP' },
+        { value: 'CHF', flag: 'ch', symbol: 'Fr.', label: 'CHF' },
+        { value: 'DKK', flag: 'dk', symbol: 'kr', label: 'DKK' },
+        { value: 'SEK', flag: 'se', symbol: 'kr', label: 'SEK' },
+        { value: 'HUF', flag: 'hu', symbol: 'Ft', label: 'HUF' },
+        { value: 'AED', flag: 'ae', symbol: 'د.إ', label: 'AED' }
     ];
     
     // Function to initialize currency selects
@@ -34,10 +39,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Export for use in other files
+// Update currency symbols map
 window.CURRENCY_SYMBOLS = {
     'EUR': '€',
-    'GBP': '£',
     'NOK': 'kr',
-    'USD': '$'
+    'USD': '$',
+    'GBP': '£',
+    'CHF': 'Fr.',
+    'DKK': 'kr',
+    'SEK': 'kr',
+    'HUF': 'Ft',
+    'AED': 'د.إ'
 };

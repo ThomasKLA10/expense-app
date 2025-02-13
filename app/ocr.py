@@ -73,7 +73,7 @@ class ReceiptScanner:
             # 1. OCR Text Extraction
             text = pytesseract.image_to_string(
                 Image.open(image_path),
-                lang='eng+deu+nor+spa+nld'  # English, German, Norwegian, Spanish, Dutch
+                lang='eng+deu+nor+spa+nld+dan+swe+hun+ara'  # English, German, Norwegian, Spanish, Dutch, Danish, Swedish, Hungarian, Arabic
             )
             
             self.logger.debug("=== RAW OCR OUTPUT START ===")
@@ -85,12 +85,6 @@ class ReceiptScanner:
 
             # 2. Currency Detection
             currency_patterns = {
-                'USD': [
-                    r'(?:us)?[\$]',      # $, US$
-                    r'\busd\b',           # USD
-                    r'\bdollar',          # dollar
-                    r'\$\s*\d'            # $ followed by number
-                ],
                 'EUR': [
                     r'€',                 # €
                     r'\beur\b',           # EUR
@@ -104,6 +98,52 @@ class ReceiptScanner:
                     r'krone',             # krone
                     r'\d\s*kr',           # number followed by kr
                     r'kr\s*\d'            # kr followed by number
+                ],
+                'USD': [
+                    r'(?:us)?[\$]',       # $, US$
+                    r'\busd\b',           # USD
+                    r'\bdollar',          # dollar
+                    r'\$\s*\d'            # $ followed by number
+                ],
+                'GBP': [
+                    r'£',                 # £
+                    r'\bgbp\b',           # GBP
+                    r'\bpound',           # pound
+                    r'\d\s*£',            # number followed by £
+                    r'gbp\s*\d'           # GBP followed by number
+                ],
+                'CHF': [
+                    r'\bchf\b',           # CHF
+                    r'fr\.',              # Fr.
+                    r'franken',           # franken
+                    r'\d\s*chf',          # number followed by CHF
+                    r'chf\s*\d'           # CHF followed by number
+                ],
+                'DKK': [
+                    r'\bdkk\b',           # DKK
+                    r'danske\s*kr',       # danske kr
+                    r'\d\s*dkk',          # number followed by DKK
+                    r'dkk\s*\d'           # DKK followed by number
+                ],
+                'SEK': [
+                    r'\bsek\b',           # SEK
+                    r'svenska\s*kr',      # svenska kr
+                    r'\d\s*sek',          # number followed by SEK
+                    r'sek\s*\d'           # SEK followed by number
+                ],
+                'HUF': [
+                    r'\bhuf\b',           # HUF
+                    r'ft',                # Ft
+                    r'forint',            # forint
+                    r'\d\s*ft',           # number followed by Ft
+                    r'huf\s*\d'           # HUF followed by number
+                ],
+                'AED': [
+                    r'\baed\b',           # AED
+                    r'د\.إ',              # د.إ
+                    r'dirham',            # dirham
+                    r'\d\s*aed',          # number followed by AED
+                    r'aed\s*\d'           # AED followed by number
                 ]
             }
 
