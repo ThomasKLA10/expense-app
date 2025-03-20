@@ -14,6 +14,7 @@ from .pdf_generator import ExpenseReportGenerator
 from PIL import Image
 import io
 from .utils.email import mail
+from pathlib import Path
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
 
@@ -532,20 +533,24 @@ def create_app():
         receipt = Receipt.query.get_or_404(receipt_id)
         
         # Check if user has permission to view this receipt
-        if receipt.user_id != current_user.id and not current_user.is_admin:
+        if not current_user.is_admin and receipt.user_id != current_user.id:
             abort(403)
         
-        # Convert relative path to absolute path
-        base_dir = os.path.abspath(os.path.dirname(__file__))
-        absolute_path = os.path.join(base_dir, receipt.file_path_db)
-        
-        # Check if file exists
-        if not receipt.file_path_db or not os.path.exists(absolute_path):
+        # Use pathlib for safer file path handling
+        if not receipt.file_path_db:
             abort(404)
         
-        # Send the file
+        # Convert string path to Path object
+        file_path = Path(receipt.file_path_db)
+        
+        # Check if file exists
+        if not file_path.exists():
+            flash('Receipt file not found', 'error')
+            return redirect(url_for('view_receipt', receipt_id=receipt_id))
+        
+        # Send the file - pathlib objects work directly with send_file
         return send_file(
-            absolute_path,
+            file_path,
             mimetype='application/pdf',
             as_attachment=False,
             download_name=f'receipt_{receipt_id}.pdf'
