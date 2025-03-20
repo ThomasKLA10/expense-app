@@ -33,31 +33,17 @@ class ReceiptScanner:
             dict: Extracted receipt information (total, date, currency)
         """
         try:
-            self.logger.debug(f"Starting to process receipt: {image_path}")
-
-            # Handle PDF files
+            if not os.path.exists(image_path):
+                self.logger.error(f"File not found: {image_path}")
+                return {"error": "Receipt file not found", "total": None, "date": None, "currency": None}
+            
             if image_path.lower().endswith('.pdf'):
-                # Log PDF processing
-                self.logger.debug("Processing PDF file")
-                # Convert PDF to image
-                pages = convert_from_path(image_path)
-                if pages:
-                    # Save first page as temporary image
-                    temp_image_path = image_path.replace('.pdf', '_temp.jpg')
-                    self.logger.debug(f"Converting PDF to temporary image: {temp_image_path}")
-                    pages[0].save(temp_image_path, 'JPEG')
-                    # Process the image
-                    result = self._process_image(temp_image_path)
-                    # Clean up
-                    if os.path.exists(temp_image_path):
-                        os.remove(temp_image_path)
-                    return result
+                return self._process_pdf(image_path)
             else:
                 return self._process_image(image_path)
-                
         except Exception as e:
-            self.logger.error(f"Error in process_receipt: {str(e)}", exc_info=True)
-            raise
+            self.logger.error(f"Error processing receipt: {str(e)}", exc_info=True)
+            return {"error": f"Receipt processing failed: {str(e)}", "total": None, "date": None, "currency": None}
 
     def _process_image(self, image_path):
         """
