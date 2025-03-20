@@ -31,6 +31,7 @@ def upgrade():
     )
 
 def downgrade():
+    # Remove the archived column
     op.drop_column('receipt', 'archived')
 
 
