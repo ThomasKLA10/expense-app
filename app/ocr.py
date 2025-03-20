@@ -310,3 +310,43 @@ class ReceiptScanner:
         except Exception as e:
             self.logger.error(f"Error in _process_image: {str(e)}")
             raise 
+
+    def _process_pdf(self, pdf_path):
+        """
+        Process a PDF file to extract receipt information.
+        Args:
+            pdf_path (str): Path to the PDF file
+        Returns:
+            dict: Extracted receipt information
+        """
+        try:
+            self.logger.debug(f"Processing PDF at path: {pdf_path}")
+            
+            # Convert PDF to images
+            images = convert_from_path(pdf_path)
+            
+            if not images:
+                self.logger.error("Failed to convert PDF to images")
+                return {"error": "Failed to convert PDF", "total": None, "date": None, "currency": None}
+            
+            # Process the first page of the PDF
+            first_page = images[0]
+            
+            # Save the image temporarily
+            temp_image_path = f"{pdf_path}_temp.jpg"
+            first_page.save(temp_image_path, 'JPEG')
+            
+            # Process the image
+            result = self._process_image(temp_image_path)
+            
+            # Clean up the temporary file
+            try:
+                os.remove(temp_image_path)
+            except Exception as e:
+                self.logger.warning(f"Failed to remove temporary file: {str(e)}")
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error in _process_pdf: {str(e)}")
+            return {"error": f"PDF processing failed: {str(e)}", "total": None, "date": None, "currency": None}
