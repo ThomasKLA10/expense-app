@@ -7,13 +7,22 @@
     <title>BB Expense App</title>
     
     <style>
+        /* Make favicon circular */
         link[rel="icon"] {
             border-radius: 50%;
         }
+        
+        /* Add a custom mask for the favicon in the tab */
+        @supports (-webkit-mask: url('')) or (mask: url('')) {
+            link[rel="icon"] {
+                -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50'/%3E%3C/svg%3E") center/contain no-repeat;
+                mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='50'/%3E%3C/svg%3E") center/contain no-repeat;
+            }
+        }
     </style>
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.png') }}">
-    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.png') }}?v=2">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}?v=2">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.png') }}?v=2">
     
     <!-- Critical CSS that must load first -->
     <style>
