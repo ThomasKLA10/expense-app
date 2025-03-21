@@ -12,10 +12,11 @@ from datetime import datetime, timezone, timedelta
 import logging
 from .pdf_generator import ExpenseReportGenerator
 from PIL import Image
-import io
 from .utils.email import mail
 from pathlib import Path
 import time
+from .utils.file_management import archive_processed_receipts, cleanup_temp_reports
+
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
 
@@ -610,6 +611,15 @@ def create_app():
     # Create database tables
     with app.app_context():
         db.create_all()
+
+    # Add this near the end of your create_app function
+    @app.cli.command("manage-files")
+    def manage_files_command():
+        """Archive receipts and clean up temporary files."""
+        with app.app_context():
+            archived = archive_processed_receipts()
+            cleaned = cleanup_temp_reports()
+            print(f"Archived {archived} receipts and cleaned up {cleaned} temporary files.")
 
     return app
 
