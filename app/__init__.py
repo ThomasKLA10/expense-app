@@ -15,8 +15,36 @@ from PIL import Image
 import io
 from .utils.email import mail
 from pathlib import Path
+import time
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+# Simple in-memory rate limiting
+request_history = {}
+
+def rate_limit(limit=10, per=60):
+    """Basic rate limiting decorator"""
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            # Get client IP
+            ip = request.remote_addr
+            now = time.time()
+            
+            # Initialize or clean history
+            if ip not in request_history:
+                request_history[ip] = []
+            request_history[ip] = [t for t in request_history[ip] if now - t < per]
+            
+            # Check limit
+            if len(request_history[ip]) >= limit:
+                return jsonify({"error": "Rate limit exceeded"}), 429
+            
+            # Add request
+            request_history[ip].append(now)
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -383,6 +411,7 @@ def create_app():
         return redirect(url_for('dashboard'))
 
     @app.route('/process_receipt', methods=['POST'])
+    @rate_limit(10, 60)  # 10 requests per minute
     def process_receipt():
         print("Receipt processing endpoint hit")  # Debug print
         try:
@@ -569,8 +598,30 @@ def create_app():
         db.session.commit()
         return redirect(url_for('admin_users'))
 
+    @app.after_request
+    def add_security_headers(response):
+        """Add security headers to response"""
+        if not app.debug:  # Only in production
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+            response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+            response.headers['X-XSS-Protection'] = '1; mode=block'
+        return response
+
     # Create database tables
     with app.app_context():
         db.create_all()
 
     return app
+
+def create_receipt(user_id, amount, currency, category, file_path=None, **kwargs):
+    """Helper function to create a receipt with common fields"""
+    receipt = Receipt(
+        user_id=user_id,
+        amount=amount,
+        currency=currency,
+        category=category,
+        file_path_db=file_path,
+        **kwargs
+    )
+    db.session.add(receipt)
+    return receipt

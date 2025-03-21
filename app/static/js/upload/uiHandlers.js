@@ -217,7 +217,10 @@ function handleFormSubmission(e) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred while submitting the form');
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'alert alert-danger mt-3';
+        errorMessage.textContent = 'Unable to submit the form. Please check your inputs and try again.';
+        document.getElementById('expense-form').prepend(errorMessage);
     });
 }
 
