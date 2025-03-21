@@ -1,0 +1,28 @@
+/* Reset default margins and padding */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+}
+
+/* General styles */
+body {
+    background-color: #f5f7fa;
+}
+
+/* General container styles */
+.container {
+    max-width: 1200px;
+}
+
+/* Content minimum height */
+.content {
+    min-height: 100vh;
+    padding-bottom: 100px;  /* Add padding at the bottom */
+}
+
+/* Add space after the form */
+form {
+    margin-bottom: 120px;  /* Add margin after the form */
+} 

@@ -1,0 +1,118 @@
+/* Form elements styling */
+#amount {
+    width: 120px;
+}
+
+#currency {
+    width: 123px;
+    padding-left: 5px;
+}
+
+.btn-group {
+    max-width: 400px;
+}
+
+.btn-check + .btn-outline-primary {
+    flex: 1;
+}
+
+.col-auto {
+    display: flex;
+    flex-direction: column;
+    margin-right: 10px;
+}
+
+.currency-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fi {
+    margin-right: 8px;
+}
+
+/* New styles for upload button */
+.btn-success.btn-lg {
+    padding: 0.8rem 2rem;
+    font-size: 1.1rem;
+}
+
+#file-info {
+    margin-top: -1rem;
+}
+
+/* Form control styles */
+.form-control:focus,
+.form-select:focus {
+    box-shadow: none;
+    border-color: #80bdff;
+}
+
+/* Upload button styles */
+.upload-btn {
+    width: 100%;
+    text-align: left;
+    position: relative;
+}
+
+.upload-btn:hover {
+    background-color: #f8f9fa;
+}
+
+/* Currency calculator styles */
+.calculator {
+    display: none;
+    position: relative;
+    margin-top: -4px;  /* Adjusted from -8px to -4px for better spacing */
+}
+
+/* Adjust expense line spacing */
+.expense-line {
+    position: relative;
+    margin-bottom: 3.5rem !important;  /* Increased from 2.5rem to 3.5rem */
+}
+
+.row.g-3.align-items-center {
+    margin-bottom: 0;
+}
+
+/* Currency select inside input group */
+.input-group .currency-select {
+    border: none;
+    background-color: #f8f9fa;
+}
+
+.input-group-text.p-0 {
+    background-color: #f8f9fa;
+}
+
+/* Drop zone styles */
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.drop-zone-active {
+    border-color: #0d6efd;
+    background-color: #e9ecef;
+}
+
+.drop-zone-content {
+    color: #6c757d;
+}
+
+.drop-zone-content i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.drop-zone:hover {
+    border-color: #0d6efd;
+} 

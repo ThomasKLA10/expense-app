@@ -1,36 +1,22 @@
-/* General styles and navbar */
-.container {
-    max-width: 1200px;
-}
+/* Main CSS file that imports all modules */
 
-/* Index page styles */
-.btn-lg {
-    padding: 1rem 2rem;
-}
+/* Base styles */
+@import 'modules/base.css';
 
-/* Receipt details styling */
-.card-body dl.row {
-    margin-bottom: 0;
-}
+/* Components */
+@import 'modules/components.css';
 
-.card-body dt {
-    font-weight: 500;
-    color: #6c757d;
-}
+/* Forms */
+@import 'modules/forms.css';
 
-.card-body dd {
-    margin-bottom: 0;
-}
+/* Tables */
+@import 'modules/tables.css';
 
-.receipt-preview {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-}
+/* Receipts */
+@import 'modules/receipts.css';
 
-.receipt-iframe {
-    width: 100%;
-    min-height: 600px;
-    border: none;
-    background: #fff;
-}
+/* Welcome page */
+@import 'modules/welcome.css';
+
+/* Utilities */
+@import 'modules/utilities.css';

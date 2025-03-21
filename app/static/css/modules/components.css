@@ -1,0 +1,104 @@
+/* Card styles */
+.card-body dl.row {
+    margin-bottom: 0;
+}
+
+.card-body dt {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.card-body dd {
+    margin-bottom: 0;
+}
+
+/* Button styles */
+.btn-lg {
+    padding: 1rem 2rem;
+}
+
+.google-signin-btn {
+    border-radius: 30px;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    color: #333;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    padding: 1rem 2.5rem;
+}
+
+.google-signin-btn:hover {
+    background-color: #020429;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* Remove button glow and improve aesthetics */
+.btn-check:focus + .btn,
+.btn:focus {
+    box-shadow: none;
+}
+
+/* Style for expense type buttons */
+.btn-group .btn {
+    padding: 0.5rem 1.5rem;
+    border-radius: 4px;
+    margin: 0 4px;
+    transition: all 0.2s ease;
+}
+
+/* Other expenses button */
+.btn-check:checked + .btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-check + .btn-success {
+    background-color: white;
+    border-color: #28a745;
+    color: #28a745;
+}
+
+/* Travel expenses button */
+.btn-check:checked + .btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-check + .btn-primary {
+    background-color: white;
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+/* Badge styles */
+.new-badge {
+    font-size: 0.75rem;
+    background-color: #1a73e8 !important; /* Google blue */
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+    border-radius: 4px;
+}
+
+/* Alerts and notifications */
+.line-conversion {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    padding: 8px 0;  /* Increased padding */
+}
+
+.line-conversion small {
+    color: #6c757d;
+    font-size: 0.85rem;
+    display: block;
+    line-height: 1.2;
+}
+
+.line-conversion .calculation {
+    color: #0d6efd;
+    display: block;
+    margin-top: 2px;
+} 

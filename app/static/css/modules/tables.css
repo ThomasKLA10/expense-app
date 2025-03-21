@@ -1,0 +1,62 @@
+/* Add these rules at the top of your CSS file */
+.js-loaded tr[data-receipt-id] {
+    background-color: transparent !important;
+}
+
+.js-loaded tr[data-receipt-id] .new-badge {
+    display: none !important;
+}
+
+/* Table styles */
+.table {
+    --bs-table-striped-bg: rgba(0, 0, 0, 0.02);
+}
+
+.expense-row td {
+    vertical-align: middle;
+}
+
+/* Fixed width for table columns to prevent shifting */
+.archived-receipts-table td {
+    white-space: nowrap;
+}
+
+.archived-receipts-table td:nth-child(1) { /* Date column */
+    width: 120px;
+}
+
+.archived-receipts-table td:nth-child(2) { /* Amount column */
+    width: 150px;
+}
+
+.archived-receipts-table td:nth-child(3) { /* Category column */
+    width: 120px;
+}
+
+.archived-receipts-table td:nth-child(4) { /* Status column */
+    width: 120px;
+}
+
+.archived-receipts-table td:nth-child(5) { /* Actions column */
+    width: 150px;
+}
+
+.actions-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px; /* Ensures minimum width even when badge is removed */
+}
+
+.recent-update {
+    background-color: #f2f6fc;
+    transition: background-color 0.3s ease;
+}
+
+.recent-update[data-viewed="true"] {
+    background-color: transparent !important;
+}
+
+.recent-update[data-viewed="true"] .new-badge {
+    display: none !important;
+} 

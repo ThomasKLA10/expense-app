@@ -1,0 +1,95 @@
+/* Preview styles */
+.pdf-preview-box {
+    border: 2px dashed #dee2e6;
+    padding: 2rem;
+    margin: 1rem;
+    border-radius: 0.5rem;
+}
+
+.pdf-preview-box i {
+    font-size: 4rem;
+    color: #dc3545;
+}
+
+.pdf-filename {
+    margin: 0;
+    word-break: break-all;
+}
+
+#image-preview img {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+}
+
+/* Receipt preview layout */
+.receipt-preview-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+/* Main receipt image */
+.receipt-zoom-container {
+    flex: 0 1 auto;
+    max-width: 100%;
+}
+
+.receipt-image {
+    max-height: 600px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    cursor: crosshair;
+}
+
+
+/* Make sure the OCR results card has some breathing room */
+#ocr-results {
+    margin-bottom: 40px;
+}
+
+/* Receipt preview styles */
+.view-receipt {
+    border-left: none;
+}
+
+.view-receipt:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.view-receipt:not(:disabled):hover {
+    background-color: #e9ecef;
+    color: #0d6efd;
+}
+
+.receipt-preview {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.receipt-preview img {
+    max-width: 100%;
+    height: auto;
+}
+
+.receipt-preview iframe {
+    width: 100%;
+    height: 80vh;
+    border: none;
+}
+
+.receipt-preview {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.receipt-iframe {
+    width: 100%;
+    min-height: 600px;
+    border: none;
+    background: #fff;
+} 
