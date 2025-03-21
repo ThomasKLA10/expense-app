@@ -229,33 +229,40 @@ class ExpenseReportGenerator:
     
     @staticmethod
     def merge_with_receipts(summary_pdf, receipt_paths):
-        merger = PdfMerger()
-        
-        # Add the summary PDF first
-        merger.append(summary_pdf)
-        
-        # Process and add each receipt
-        for receipt_path in receipt_paths:
-            if receipt_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
-                # Convert image to PDF
-                img = Image.open(receipt_path)
-                pdf_path = receipt_path.rsplit('.', 1)[0] + '_temp.pdf'
-                img.save(pdf_path, 'PDF', resolution=100.0)
-                merger.append(pdf_path)
-                # Clean up temporary PDF
-                os.remove(pdf_path)
-            else:
-                # Assume it's already a PDF
-                merger.append(receipt_path)
-        
-        # Generate final PDF path
-        final_path = summary_pdf.replace('_summary.pdf', '_complete.pdf')
-        
-        # Write the complete PDF
-        merger.write(final_path)
-        merger.close()
-        
-        # Clean up summary PDF
-        os.remove(summary_pdf)
-        
-        return final_path 
+        try:
+            merger = PdfMerger()
+            
+            # Add the summary PDF first
+            merger.append(summary_pdf)
+            
+            # Process and add each receipt
+            for receipt_path in receipt_paths:
+                if receipt_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                    # Convert image to PDF
+                    img = Image.open(receipt_path)
+                    pdf_path = receipt_path.rsplit('.', 1)[0] + '_temp.pdf'
+                    img.save(pdf_path, 'PDF', resolution=100.0)
+                    merger.append(pdf_path)
+                    # Clean up temporary PDF
+                    os.remove(pdf_path)
+                else:
+                    # Assume it's already a PDF
+                    merger.append(receipt_path)
+            
+            # Generate final PDF path
+            final_path = summary_pdf.replace('_summary.pdf', '_complete.pdf')
+            
+            # Write the complete PDF
+            merger.write(final_path)
+            merger.close()
+            
+            # Clean up summary PDF
+            os.remove(summary_pdf)
+            
+            return final_path
+        except Exception as e:
+            import traceback
+            print(f"Error merging PDFs: {str(e)}")
+            print(traceback.format_exc())
+            # Return the summary PDF as fallback
+            return summary_pdf 

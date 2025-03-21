@@ -308,8 +308,8 @@ class ReceiptScanner:
             return result
             
         except Exception as e:
-            self.logger.error(f"Error in _process_image: {str(e)}")
-            raise 
+            self.logger.error(f"Error in _process_image: {str(e)}", exc_info=True)
+            return {"error": f"Image processing failed: {str(e)}", "total": None, "date": None, "currency": None}
 
     def _process_pdf(self, pdf_path):
         """

@@ -125,4 +125,5 @@ class GoogleOAuth:
             print(f"Error in handle_callback: {str(e)}")
             import traceback
             traceback.print_exc()
+            current_app.logger.error(f"OAuth error: {str(e)}\n{traceback.format_exc()}")
             return None

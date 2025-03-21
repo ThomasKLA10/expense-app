@@ -27,7 +27,11 @@ View it here: {url_for('admin_receipt_review', id=receipt.id, _external=True)}
             review_url=url_for('admin_receipt_review', id=receipt.id, _external=True)
         )
     )
-    mail.send(msg)
+    try:
+        mail.send(msg)
+        current_app.logger.info(f"Reviewer notification sent to {len(reviewer_emails)} reviewers for receipt {receipt.id}")
+    except Exception as e:
+        current_app.logger.error(f"Failed to send reviewer notification for receipt {receipt.id}: {str(e)}")
 
 def send_receipt_status_notification(receipt):
     """Send notification to user about receipt approval/rejection"""

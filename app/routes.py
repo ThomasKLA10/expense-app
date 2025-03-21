@@ -230,6 +230,8 @@ def submit_expense():
         
     except Exception as e:
         print(f"Error in submit_expense: {str(e)}")
+        import traceback
+        logger.error(f"Submit expense error: {str(e)}\n{traceback.format_exc()}")
         db.session.rollback()
         return jsonify({
             'success': False,
