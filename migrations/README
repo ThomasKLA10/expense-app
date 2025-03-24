@@ -1,1 +1,8 @@
-Single-database configuration for Flask.
+# Database Setup
+
+For a fresh installation:
+```bash
+docker compose up -d
+```
+
+The application will automatically set up the database with the correct schema.

@@ -50,10 +50,6 @@ A comprehensive expense tracking and receipt management application built with F
 
 5. The application will be available at http://localhost:5000
 
-6. Run database migrations (first time only):
-   ```
-   docker-compose exec web flask db upgrade
-   ```
 
 ### Local Development Setup (Alternative)
 
