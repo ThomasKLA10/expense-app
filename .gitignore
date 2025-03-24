@@ -12,3 +12,4 @@ app/static/uploads/*
 app/uploads/*
 !app/uploads/.gitkeepapp/temp/
 temp/
+app/archive/
