@@ -25,11 +25,39 @@ A comprehensive expense tracking and receipt management application built with F
 ## Setup and Installation
 
 ### Prerequisites
-- Python 3.12+
-- PostgreSQL
-- Docker (optional)
+- Docker and Docker Compose (recommended)
+- Alternatively: Python 3.12+ and PostgreSQL
 
-### Local Development Setup
+### Docker Setup (Recommended)
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/ThomasKLA10/expense-app.git
+   cd expense-app
+   ```
+
+2. Create a `.env` file:
+   ```
+   cp .env.example .env
+   ```
+   
+3. Update the values in `.env` with your configuration
+
+4. Build and start the containers:
+   ```
+   docker-compose up -d
+   ```
+
+5. The application will be available at http://localhost:5000
+
+6. Run database migrations (first time only):
+   ```
+   docker-compose exec web flask db upgrade
+   ```
+
+### Local Development Setup (Alternative)
+
+If you prefer not to use Docker:
 
 1. Clone the repository:
    ```
@@ -61,15 +89,6 @@ A comprehensive expense tracking and receipt management application built with F
    ```
    flask run
    ```
-
-### Docker Setup
-
-1. Build and start the containers:
-   ```
-   docker-compose up -d
-   ```
-
-2. The application will be available at http://localhost:5000
 
 ## Project Structure
 
