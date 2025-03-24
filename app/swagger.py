@@ -8,6 +8,20 @@ spec = APISpec(
     title="BB Expense App API",
     version="1.0.0",
     openapi_version="3.0.2",
+    info={
+        "description": """
+        API for the BB Expense App. This API allows you to:
+        * Upload and manage expense receipts
+        * Process receipts with OCR
+        * Retrieve receipt information
+        
+        All endpoints require authentication via Google OAuth.
+        """,
+        "contact": {
+            "name": "BB Support",
+            "email": "support@bakkenbaeck.no"
+        }
+    },
     plugins=[MarshmallowPlugin()],
 )
 
@@ -59,6 +73,7 @@ def register_swagger_routes(app):
         operations={
             "get": {
                 "summary": "Get all receipts",
+                "description": "Retrieve a list of all receipts for the authenticated user",
                 "tags": ["Receipts"],
                 "responses": {
                     "200": {
@@ -71,11 +86,14 @@ def register_swagger_routes(app):
                                 }
                             }
                         }
-                    }
+                    },
+                    "401": {"description": "Not authenticated"},
+                    "403": {"description": "Not authorized to view receipts"}
                 }
             },
             "post": {
                 "summary": "Create a new receipt",
+                "description": "Upload a new receipt with expense details",
                 "tags": ["Receipts"],
                 "requestBody": {
                     "content": {
@@ -83,10 +101,26 @@ def register_swagger_routes(app):
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "amount": {"type": "number"},
-                                    "currency": {"type": "string"},
-                                    "category": {"type": "string"},
-                                    "file": {"type": "string", "format": "binary"}
+                                    "amount": {
+                                        "type": "number",
+                                        "description": "Total amount of the expense",
+                                        "minimum": 0
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "description": "Three-letter currency code (e.g., EUR, USD, NOK)",
+                                        "example": "EUR"
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "description": "Type of expense",
+                                        "enum": ["travel", "food", "equipment", "other"]
+                                    },
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Receipt image or PDF file"
+                                    }
                                 },
                                 "required": ["amount", "currency", "category", "file"]
                             }
@@ -95,13 +129,16 @@ def register_swagger_routes(app):
                 },
                 "responses": {
                     "201": {
-                        "description": "Receipt created",
+                        "description": "Receipt created successfully",
                         "content": {
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/Receipt"}
                             }
                         }
-                    }
+                    },
+                    "400": {"description": "Invalid input data"},
+                    "401": {"description": "Not authenticated"},
+                    "415": {"description": "Unsupported file type"}
                 }
             }
         }
@@ -142,6 +179,7 @@ def register_swagger_routes(app):
         operations={
             "post": {
                 "summary": "Process receipt with OCR",
+                "description": "Extract information from a receipt image using OCR",
                 "tags": ["OCR"],
                 "requestBody": {
                     "content": {
@@ -149,7 +187,11 @@ def register_swagger_routes(app):
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "file": {"type": "string", "format": "binary"}
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Receipt image to process (PNG, JPG, PDF)"
+                                    }
                                 },
                                 "required": ["file"]
                             }
@@ -164,14 +206,26 @@ def register_swagger_routes(app):
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "amount": {"type": "number"},
-                                        "currency": {"type": "string"},
-                                        "date": {"type": "string"}
+                                        "amount": {
+                                            "type": "number",
+                                            "description": "Extracted amount from receipt"
+                                        },
+                                        "currency": {
+                                            "type": "string",
+                                            "description": "Detected currency"
+                                        },
+                                        "date": {
+                                            "type": "string",
+                                            "description": "Receipt date in YYYY-MM-DD format"
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
+                    },
+                    "400": {"description": "Invalid file"},
+                    "415": {"description": "Unsupported file type"},
+                    "500": {"description": "OCR processing failed"}
                 }
             }
         }
