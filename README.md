@@ -7,7 +7,7 @@ A comprehensive expense tracking and receipt management application built with F
 - **User Authentication**: Secure login via Google OAuth
 - **Receipt Management**: Upload, track, and manage expense receipts
 - **OCR Processing**: Automatic extraction of information from receipts
-- **Currency Conversion**: Support for multiple currencies with automatic conversion
+- **Currency Conversion**: Support for multiple currencies with automatic conversion based on date issued
 - **Admin Dashboard**: Review and approve expense submissions
 - **PDF Report Generation**: Create professional expense reports
 - **Email Notifications**: Automated notifications for receipt status changes
@@ -207,17 +207,6 @@ app/
             └── receipt_file.pdf
 ```
 
-## Deployment
-
-For production deployment:
-
-1. Update the `.env` file with production settings
-2. Set `FLASK_ENV=production`
-3. Configure a production WSGI server (Gunicorn, uWSGI)
-4. Set up a reverse proxy (Nginx, Apache)
-
-
-
 ## Google OAuth Configuration
 
 To enable Google authentication, you need to set up OAuth credentials:
@@ -250,7 +239,35 @@ To modify the allowed domains:
 
 This ensures that only users with email addresses from approved domains can access the application.
 
+## Development Tools
+
+### Creating a Test User
+
+The application includes a utility endpoint to create a test user for demonstration purposes:
+
+1. Log in as an admin user
+2. Navigate to: `http://localhost:5000/create-test-user`
+3. This will create a test user with the following credentials:
+   - Email: `test@bakkenbaeck.no`
+   - Name: `Test User`
+   - Admin: No
+   - Reviewer: No
+4. You will be redirected to the user management page
+
+Note: This endpoint is protected by the `@admin_required` decorator, so you must be logged in as an admin to use it.
+
+## Deployment
+
+For production deployment:
+
+1. Update the `.env` file with production settings
+2. Set `FLASK_ENV=production`
+3. Configure a production WSGI server (Gunicorn, uWSGI)
+4. Set up a reverse proxy (Nginx, Apache)
+
 ## Next Steps
 
-The application is feature-complete with only two remaining steps before production deployment:
+The application is feature-complete with only 3 remaining steps before production deployment:
 1. Configure the SMTP email settings for notifications
+2. Cronjob for file management (archive and cleanup) 
+3. Final tweaks of the application
