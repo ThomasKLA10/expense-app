@@ -271,6 +271,24 @@ The application includes a utility endpoint to create a test user for demonstrat
 
 Note: This endpoint is protected by the `@admin_required` decorator, so you must be logged in as an admin to use it.
 
+## Making Yourself an Admin
+
+If you need admin access, you can grant it to yourself using the Flask shell:
+
+```bash
+# Enter flask shell in Docker
+docker exec -it expense-app-web-1 flask shell
+
+# Then paste these commands:
+from app.models import User, db
+user = User.query.filter_by(email='your@email.com').first()
+user.is_admin = True
+db.session.commit()
+exit()
+```
+
+Just replace `your@email.com` with your email address. After running these commands, you'll have admin privileges in the application.
+
 ## Deployment
 
 For production deployment:
