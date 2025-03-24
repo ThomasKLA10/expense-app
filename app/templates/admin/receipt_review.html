@@ -13,8 +13,63 @@
         </div>
     </div>
 
-    <!-- Include shared receipt details template -->
-    {% include "partials/receipt_details.html" %}
+    <div class="row">
+        <!-- Left column for receipt details and buttons -->
+        <div class="col-md-4">
+            <div class="card mb-2">
+                <div class="card-body p-3">
+                    <h5 class="card-title mb-2">Receipt Details</h5>
+                    <dl class="row g-1 mb-0">
+                        <dt class="col-5">Date Submitted:</dt>
+                        <dd class="col-7">{{ receipt.date_submitted.strftime('%d.%m.%Y %H:%M') }}</dd>
+                        
+                        <dt class="col-5">Amount:</dt>
+                        <dd class="col-7">{{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</dd>
+                        
+                        <dt class="col-5">Category:</dt>
+                        <dd class="col-7">{{ receipt.category|title }}</dd>
+                        
+                        {% if receipt.comment %}
+                        <dt class="col-5">Comment:</dt>
+                        <dd class="col-7">{{ receipt.comment }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- Action buttons immediately below -->
+            <div class="mb-4">
+                <a href="{{ url_for('admin_receipt_action', id=receipt.id, action='approve') }}" 
+                   class="btn btn-sm btn-success me-2">
+                    <i class="bi bi-check-circle"></i> Approve
+                </a>
+                <a href="{{ url_for('admin_receipt_action', id=receipt.id, action='reject') }}" 
+                   class="btn btn-sm btn-danger">
+                    <i class="bi bi-x-circle"></i> Reject
+                </a>
+            </div>
+        </div>
+        
+        <!-- Right column for PDF viewer -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Receipt File</h5>
+                    {% if receipt.file_path_db %}
+                    <div style="height: 900px;">
+                        <iframe src="{{ url_for('view_receipt_file', receipt_id=receipt.id) }}" 
+                                allowfullscreen
+                                style="width: 100%; height: 100%; border: none;"></iframe>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        No receipt file available
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
