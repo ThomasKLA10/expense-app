@@ -24,6 +24,10 @@ RUN pip install flask-swagger-ui==4.11.1
 
 COPY . .
 
+# Ensure script has correct permissions and line endings
+RUN chmod +x wait-for-db.sh && \
+    sed -i 's/\r$//' wait-for-db.sh
+
 # Create default .env if not exists
 RUN touch .env
 
@@ -33,4 +37,5 @@ ENV FLASK_DEBUG=1
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "./wait-for-db.sh db \"flask run --host=0.0.0.0 --debug\""]
+# Execute the script content directly
+CMD ["/bin/sh", "-c", "until PGPASSWORD=postgres psql -h db -U postgres -c '\\q'; do echo 'Postgres is unavailable - sleeping'; sleep 1; done; echo 'Postgres is up - executing command'; flask run --host=0.0.0.0 --debug"]
