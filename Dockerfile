@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install marshmallow==3.20.1
+RUN pip install apispec==6.3.0
+RUN pip install flask-swagger-ui==4.11.1
 
 COPY . .
 

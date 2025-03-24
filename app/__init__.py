@@ -16,6 +16,7 @@ from .utils.email import mail
 from pathlib import Path
 import time
 from .utils.file_management import archive_processed_receipts, cleanup_temp_reports
+from .swagger import swagger_ui_blueprint, register_swagger_routes, SWAGGER_URL
 
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
@@ -59,9 +60,9 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def create_app():
+def create_app(config_class=Config):
     app = Flask(__name__)
-    app.config.from_object(Config)
+    app.config.from_object(config_class)
 
     # Create uploads directory with absolute path
     uploads_dir = os.path.join(app.root_path, 'uploads')
@@ -620,6 +621,10 @@ def create_app():
             archived = archive_processed_receipts()
             cleaned = cleanup_temp_reports()
             print(f"Archived {archived} receipts and cleaned up {cleaned} temporary files.")
+
+    # Register Swagger UI blueprint - add this before returning the app
+    app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
+    register_swagger_routes(app)
 
     return app
 
