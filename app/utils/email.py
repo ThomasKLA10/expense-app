@@ -79,11 +79,14 @@ def notify_reviewers_of_new_receipt(receipt):
     
     review_url = url_for('admin_receipt_review', id=receipt.id, _external=True)
     
+    # Update the subject line to include the user's name
+    subject = f"New Receipt by {receipt.user.name}"
+    
     for reviewer in reviewers:
         try:
             current_app.logger.info(f"Sending notification to reviewer: {reviewer.email}")
             msg = Message(
-                subject="New Receipt Pending Review",
+                subject=subject,
                 recipients=[reviewer.email],
                 html=render_template('emails/new_receipt.html', receipt=receipt, review_url=review_url)
             )
