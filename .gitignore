@@ -13,3 +13,4 @@ app/uploads/*
 !app/uploads/.gitkeepapp/temp/
 temp/
 app/archive/
+logs/
