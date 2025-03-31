@@ -165,6 +165,7 @@ The application is designed to comply with German data protection laws and tax r
   ```bash
   flask manage-files
   ```
+  - System reports statistics on archived files and cleaned temporary files
 
 ### Data Security
 
@@ -188,19 +189,52 @@ The application includes a sophisticated file management system designed for lon
 1. **Archiving System**
    - Automatically moves processed receipts to secure archive
    - Maintains database references for continued access
-   - Organizes by user ID and receipt ID
+   - Organizes by user ID
 
 2. **Cleanup Processes**
    - Removes temporary PDF reports after 7 days
    - Prevents unnecessary storage usage
    - Maintains clean temporary directories
 
-3. **Manual Management**
-   - Administrators can trigger file management:
-     ```bash
-     flask manage-files
-     ```
-   - System reports statistics on archived files and cleaned temporary files
+### Storage Structure
+
+project_root/
+├── app/
+│   └── archive/     # Long-term storage (10+ years)
+│       └── user_id/
+│           └── receipt_files.pdf
+└── temp/        # Temporary PDF reports (cleaned after 7 days)
+
+### Automated Maintenance
+
+The application includes scripts to automate file management:
+
+1. **Manual Execution**
+   ```bash
+   docker-compose exec web flask manage-files
+   ```
+
+2. **Scheduled Execution (Weekly)**
+   
+   The application includes two scripts for automated maintenance:
+   
+   - `file-management.sh`: Performs the actual file management tasks
+   - `setup-cron.sh`: Sets up a weekly cronjob (Wednesdays at 2 AM)
+   
+   To set up automated weekly maintenance:
+   ```bash
+   chmod +x file-management.sh setup-cron.sh
+   ./setup-cron.sh
+   ```
+   
+   This will:
+   - Create a logs directory for maintenance logs
+   - Set up a cronjob to run weekly
+   - Automatically use the correct paths regardless of deployment location
+
+   **Deployment Note**: When deploying to production, simply run the `setup-cron.sh` script 
+   once on the server. It will automatically determine the correct paths and install the 
+   cronjob. No manual crontab editing is required.
 
 ### Implementation
 
@@ -209,18 +243,6 @@ The file management system is implemented in `app/utils/file_management.py` and 
 - `archive_processed_receipts()`: Moves receipts to long-term storage
 - `cleanup_temp_reports()`: Removes old temporary files
 - `setup_directories()`: Ensures required directories exist
-
-### Storage Structure
-
-```
-app/
-├── uploads/     # Temporary storage for new receipts
-├── temp/        # Temporary PDF reports (cleaned after 7 days)
-└── archive/     # Long-term storage (10+ years)
-    └── user_id/
-        └── receipt_id/
-            └── receipt_file.pdf
-```
 
 ## Google OAuth Configuration
 

@@ -10,8 +10,8 @@ def setup_directories():
     """Create necessary directories if they don't exist"""
     app_root = current_app.root_path
     
-    # Create temp directory
-    temp_dir = os.path.join(app_root, 'temp')
+    # Create temp directory at root level (matches current implementation)
+    temp_dir = os.path.join(os.path.dirname(app_root), 'temp')
     os.makedirs(temp_dir, exist_ok=True)
     
     # Create archive directory
