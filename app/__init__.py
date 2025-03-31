@@ -618,22 +618,6 @@ def create_app(config_class=Config):
         db.session.commit()
         return redirect(url_for('admin_users'))
 
-    @app.route('/test-email')
-    @login_required
-    def test_email():
-        try:
-            msg = Message(
-                subject="Test Email from BB Receipt App",
-                recipients=[current_user.email],
-                body="This is a test email from the BB Receipt App",
-                html="<h1>Test Email</h1><p>This is a test email from the BB Receipt App</p>"
-            )
-            mail.send(msg)
-            flash('Test email sent successfully! Check MailHog at http://localhost:8025', 'success')
-        except Exception as e:
-            flash(f'Error sending email: {str(e)}', 'error')
-        return redirect(url_for('dashboard'))
-
     @app.after_request
     def add_security_headers(response):
         """Add security headers to response"""

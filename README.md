@@ -304,3 +304,86 @@ The application is feature-complete with only 3 remaining steps before productio
 1. Configure the SMTP email settings for notifications
 2. Cronjob for file management (archive and cleanup) 
 3. Final tweaks of the application
+
+## Email Configuration
+
+When deploying to production, you'll need to update the email configuration to use your company's SMTP server. Follow these steps:
+
+### 1. Update Environment Variables
+
+In your production environment, set the following environment variables:
+
+```
+MAIL_SERVER=your-smtp-server.company.com
+MAIL_PORT=587  # Common ports are 587 (TLS) or 465 (SSL)
+MAIL_USE_TLS=True  # Use False if using SSL
+MAIL_USE_SSL=False  # Use True if using SSL instead of TLS
+MAIL_USERNAME=your-email@company.com
+MAIL_PASSWORD=your-email-password
+MAIL_DEFAULT_SENDER=your-email@company.com
+```
+
+### 2. Update Docker Compose (if using Docker)
+
+If you're using Docker in production, update your `docker-compose.yml` file:
+
+```yaml
+services:
+  web:
+    # ... other configuration ...
+    environment:
+      - MAIL_SERVER=your-smtp-server.company.com
+      - MAIL_PORT=587
+      - MAIL_USE_TLS=True
+      - MAIL_USE_SSL=False
+      - MAIL_USERNAME=your-email@company.com
+      - MAIL_PASSWORD=your-email-password
+      - MAIL_DEFAULT_SENDER=your-email@company.com
+```
+
+### 3. Common SMTP Configurations
+
+#### Gmail
+```
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-gmail@gmail.com
+MAIL_PASSWORD=your-app-password  # Use an App Password, not your regular password
+```
+
+#### Microsoft 365 / Office 365
+```
+MAIL_SERVER=smtp.office365.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-email@company.com
+MAIL_PASSWORD=your-password
+```
+
+#### Amazon SES
+```
+MAIL_SERVER=email-smtp.us-east-1.amazonaws.com  # Region may vary
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=YOUR_SES_ACCESS_KEY
+MAIL_PASSWORD=YOUR_SES_SECRET_KEY
+```
+
+### 4. Testing Email Configuration
+
+After updating your configuration, you can test if emails are being sent correctly by:
+
+1. Submitting a new receipt
+2. Checking if reviewers receive notification emails
+3. Approving/rejecting a receipt and checking if the user receives a status notification
+
+### 5. Troubleshooting
+
+If emails are not being sent:
+
+- Check your SMTP server settings
+- Verify that your email account credentials are correct
+- Ensure your email provider allows SMTP access (some providers require enabling this feature)
+- Check if your email provider requires using an app-specific password
+- Review application logs for any email-related errors
