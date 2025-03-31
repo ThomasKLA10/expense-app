@@ -9,8 +9,15 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SECRET_KEY=${SECRET_KEY}
+      - MAIL_SERVER=mailhog
+      - MAIL_PORT=1025
+      - MAIL_USE_TLS=False
+      - MAIL_USERNAME=test
+      - MAIL_PASSWORD=test
+      - MAIL_DEFAULT_SENDER=test@example.com
     depends_on:
       - db
+      - mailhog
     volumes:
       - .:/app
   
@@ -22,6 +29,12 @@ services:
       - POSTGRES_DB=expense_app
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP server
 
 volumes:
   postgres_data:

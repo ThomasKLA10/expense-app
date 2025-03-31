@@ -17,6 +17,11 @@
                     <dd class="col-7">
                         {{ receipt.comment|title or 'No comment provided' }}
                     </dd>
+                    
+                    {% if receipt.reviewer_notes %}
+                    <dt class="col-5">Reviewer Notes:</dt>
+                    <dd class="col-7">{{ receipt.reviewer_notes }}</dd>
+                    {% endif %}
                 </dl>
             </div>
         </div>

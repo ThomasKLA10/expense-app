@@ -35,6 +35,7 @@ class Receipt(db.Model):
     status = db.Column(db.String(20), default='pending')
     archived = db.Column(db.Boolean, default=False, nullable=False)
     comment = db.Column(db.String(500))
+    reviewer_notes = db.Column(db.Text, nullable=True)
 
     @property
     def file_path(self):

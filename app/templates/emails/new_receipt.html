@@ -1,4 +1,23 @@
-<h2>New Receipt Pending Review</h2>
-<p>A new receipt has been submitted by {{ receipt.user.name }} and requires review.</p>
-<p>Amount: {{ receipt.currency }} {{ receipt.amount }}</p>
-<p><a href="{{ review_url }}">Click here to review the receipt</a></p> 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>New Receipt Pending Review</title>
+</head>
+<body>
+    <h2>New Receipt Submitted</h2>
+    <p>A new receipt has been submitted and requires your review.</p>
+    
+    <h3>Receipt Details:</h3>
+    <ul>
+        <li><strong>Submitted by:</strong> {{ receipt.user.name }}</li>
+        <li><strong>Amount:</strong> {{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</li>
+        <li><strong>Date Submitted:</strong> {{ receipt.date_submitted.strftime('%Y-%m-%d %H:%M') }}</li>
+        <li><strong>Category:</strong> {{ receipt.category }}</li>
+        {% if receipt.description %}
+        <li><strong>Description:</strong> {{ receipt.description }}</li>
+        {% endif %}
+    </ul>
+    
+    <p><a href="{{ review_url }}">Click here to review this receipt</a></p>
+</body>
+</html> 

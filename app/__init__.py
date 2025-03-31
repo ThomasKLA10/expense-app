@@ -17,6 +17,7 @@ from pathlib import Path
 import time
 from .utils.file_management import archive_processed_receipts, cleanup_temp_reports
 from .swagger import swagger_ui_blueprint, register_swagger_routes, SWAGGER_URL
+from flask_mail import Message
 
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
@@ -187,6 +188,11 @@ def create_app(config_class=Config):
                     db.session.add(receipt)
                 
                 db.session.commit()
+
+                # After saving the receipt to the database:
+                from app.utils.email import notify_reviewers_of_new_receipt
+                notify_reviewers_of_new_receipt(receipt)
+
                 return jsonify({'success': True})
                 
             except Exception as e:
@@ -317,21 +323,27 @@ def create_app(config_class=Config):
         
         return render_template('admin/receipt_review.html', receipt=receipt)
 
-    @app.route('/admin/receipt/<int:id>/<action>')
+    @app.route('/admin/receipt/<int:id>/<action>', methods=['POST'])
     @login_required
+    @admin_required
     def admin_receipt_action(id, action):
-        if not current_user.is_admin:
-            abort(403)
-        
         receipt = Receipt.query.get_or_404(id)
         
         if action in ['approve', 'reject']:
+            # Get reviewer notes from form
+            reviewer_notes = request.form.get('reviewer_notes', '')
+            receipt.reviewer_notes = reviewer_notes
+            
             receipt.status = 'approved' if action == 'approve' else 'rejected'
             receipt.archived = True
             receipt.updated_at = datetime.now(timezone.utc)
             db.session.commit()
-        
-        return redirect(url_for('admin_dashboard'))
+            
+            # Send notification to user - using the correct function name
+            from .utils.email import send_receipt_status_notification
+            send_receipt_status_notification(receipt)
+            
+            return redirect(url_for('admin_dashboard'))
 
     @app.route('/admin/users')
     @admin_required
@@ -545,18 +557,24 @@ def create_app(config_class=Config):
             db.session.add(receipt)
             db.session.commit()
             
+            # Add this block to notify reviewers
+            from app.utils.email import notify_reviewers_of_new_receipt
+            app.logger.info("Attempting to notify reviewers about new receipt")
+            # Get the last receipt created for this user
+            latest_receipt = Receipt.query.filter_by(user_id=current_user.id).order_by(Receipt.id.desc()).first()
+            if latest_receipt:
+                notify_reviewers_of_new_receipt(latest_receipt)
+                app.logger.info(f"Notification sent for receipt {latest_receipt.id}")
+            
             return jsonify({
                 'success': True,
                 'redirect': url_for('dashboard')
             })
             
         except Exception as e:
-            print(f"Error in submit_expense: {str(e)}")
+            app.logger.error(f"Error in submit_expense: {str(e)}")
             db.session.rollback()
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 400
+            return jsonify({'success': False, 'error': str(e)})
 
     @app.route('/receipt/<int:receipt_id>/file')
     @login_required
@@ -599,6 +617,22 @@ def create_app(config_class=Config):
         db.session.add(test_user)
         db.session.commit()
         return redirect(url_for('admin_users'))
+
+    @app.route('/test-email')
+    @login_required
+    def test_email():
+        try:
+            msg = Message(
+                subject="Test Email from BB Receipt App",
+                recipients=[current_user.email],
+                body="This is a test email from the BB Receipt App",
+                html="<h1>Test Email</h1><p>This is a test email from the BB Receipt App</p>"
+            )
+            mail.send(msg)
+            flash('Test email sent successfully! Check MailHog at http://localhost:8025', 'success')
+        except Exception as e:
+            flash(f'Error sending email: {str(e)}', 'error')
+        return redirect(url_for('dashboard'))
 
     @app.after_request
     def add_security_headers(response):

@@ -1,6 +1,7 @@
 from flask_mail import Mail, Message
 from flask import current_app, url_for, render_template
 from ..models import User
+import logging
 
 mail = Mail()
 
@@ -56,4 +57,37 @@ View details here: {url_for('view_receipt', receipt_id=receipt.id, _external=Tru
         with current_app.open_resource(receipt.file_path_db) as fp:
             msg.attach("receipt.pdf", "application/pdf", fp.read())
             
-    mail.send(msg) 
+    mail.send(msg)
+
+def notify_reviewers_of_new_receipt(receipt):
+    """Notify all reviewers about a new receipt submission."""
+    from app.models import User
+    from flask import current_app, url_for, render_template
+    from flask_mail import Message
+    from app import mail
+    import logging
+    
+    # Add debug logging
+    current_app.logger.info(f"Attempting to notify reviewers about receipt {receipt.id}")
+    
+    reviewers = User.query.filter_by(is_reviewer=True).all()
+    if not reviewers:
+        current_app.logger.warning("No reviewers found to notify")
+        return
+    
+    current_app.logger.info(f"Found {len(reviewers)} reviewers to notify")
+    
+    review_url = url_for('admin_receipt_review', id=receipt.id, _external=True)
+    
+    for reviewer in reviewers:
+        try:
+            current_app.logger.info(f"Sending notification to reviewer: {reviewer.email}")
+            msg = Message(
+                subject="New Receipt Pending Review",
+                recipients=[reviewer.email],
+                html=render_template('emails/new_receipt.html', receipt=receipt, review_url=review_url)
+            )
+            mail.send(msg)
+            current_app.logger.info(f"Successfully sent notification to {reviewer.email}")
+        except Exception as e:
+            current_app.logger.error(f"Failed to send notification to {reviewer.email}: {str(e)}") 
