@@ -14,3 +14,4 @@ app/uploads/*
 temp/
 app/archive/
 logs/
+crontab
