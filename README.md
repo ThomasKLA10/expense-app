@@ -219,18 +219,22 @@ The application includes a sophisticated file management system designed for lon
 
 ### Storage Structure
 
+```
 project_root/
 ├── app/
 │   └── archive/     # Long-term storage (10+ years)
 │       └── user_id/
 │           └── receipt_files.pdf
 └── temp/        # Temporary PDF reports (cleaned after 7 days)
+```
 
 ### Automated Maintenance
 
 The application includes scripts to automate file management:
 
 1. **Manual Execution**
+
+   Run the following command to manually execute the file management task:
    ```bash
    docker-compose exec web flask manage-files
    ```
@@ -239,10 +243,15 @@ The application includes scripts to automate file management:
    
    The application includes two scripts for automated maintenance:
    
-   - `file-management.sh`: Performs the actual file management tasks
-   - `setup-cron.sh`: Sets up a weekly cronjob (Wednesdays at 2 AM)
+   - `file-management.sh`: Performs the actual file management tasks including:
+     - Running the management command via Docker Compose
+     - Creating timestamped log files
+     - Rotating logs (keeping the last 10 log files)
+     - Recording start and completion times
    
-   To set up automated weekly maintenance:
+   - `setup-cron.sh`: Sets up a weekly cron job (Wednesdays at 2 AM)
+   
+   To set up automated weekly maintenance, run the following commands:
    ```bash
    chmod +x file-management.sh setup-cron.sh
    ./setup-cron.sh
@@ -250,20 +259,54 @@ The application includes scripts to automate file management:
    
    This will:
    - Create a logs directory for maintenance logs
-   - Set up a cronjob to run weekly
+   - Set up a cron job to run weekly
    - Automatically use the correct paths regardless of deployment location
 
    **Deployment Note**: When deploying to production, simply run the `setup-cron.sh` script 
    once on the server. It will automatically determine the correct paths and install the 
-   cronjob. No manual crontab editing is required.
+   cron job. No manual crontab editing is required.
 
-### Implementation
+### Production Deployment
 
-The file management system is implemented in `app/utils/file_management.py` and includes:
+When deploying the file management system to production:
 
-- `archive_processed_receipts()`: Moves receipts to long-term storage
-- `cleanup_temp_reports()`: Removes old temporary files
-- `setup_directories()`: Ensures required directories exist
+1. **Transfer Scripts**: Copy both `file-management.sh` and `setup-cron.sh` to your production server
+
+2. **Modify the Script**: Edit `file-management.sh` to use the appropriate command for your production environment:
+   ```bash
+   # Replace the Docker-specific command:
+   # docker-compose run --rm web flask manage-files >> "$LOG_FILE" 2>&1
+   
+   # With the direct Flask command for your production environment:
+   cd /path/to/your/application && flask manage-files >> "$LOG_FILE" 2>&1
+   ```
+
+3. **Set Permissions**: Make the scripts executable:
+   ```bash
+   chmod +x file-management.sh setup-cron.sh
+   ```
+
+4. **Run Setup Script**: Execute the setup script to install the cron job:
+   ```bash
+   ./setup-cron.sh
+   ```
+
+5. **Verify Cron Installation**: Check that the cron job was installed correctly:
+   ```bash
+   crontab -l
+   ```
+   
+   You should see a line like:
+   ```
+   0 2 * * 3 /path/to/your/file-management.sh
+   ```
+
+6. **Test Manual Execution**: Run the script manually once to verify it works:
+   ```bash
+   ./file-management.sh
+   ```
+   
+   Then check the logs directory for the generated log file.
 
 ## Google OAuth Configuration
 

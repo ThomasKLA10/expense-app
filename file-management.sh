@@ -23,7 +23,7 @@ find "$LOG_DIR" -name "file-management-*.log" -type f | sort -r | tail -n +11 | 
 echo "=== File Management Run: $(date) ===" >> "$LOG_FILE"
 
 # Run the management command
-docker-compose exec -T web flask manage-files >> "$LOG_FILE" 2>&1
+docker-compose run --rm web flask manage-files >> "$LOG_FILE" 2>&1
 
 # Add completion message
 echo "Completed at $(date)" >> "$LOG_FILE"
