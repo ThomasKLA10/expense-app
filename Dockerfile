@@ -24,10 +24,6 @@ RUN pip install flask-swagger-ui==4.11.1
 
 COPY . .
 
-# Ensure script has correct permissions and line endings
-RUN chmod +x wait-for-db.sh && \
-    sed -i 's/\r$//' wait-for-db.sh
-
 # Create default .env if not exists
 RUN touch .env
 

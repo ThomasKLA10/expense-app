@@ -52,4 +52,13 @@ class Receipt(db.Model):
         """Check if the receipt was updated in the last 24 hours"""
         if not self.updated_at:
             return False
-        return (datetime.now(timezone.utc) - self.updated_at) < timedelta(hours=24)
+        
+        # Make sure we're comparing datetimes with the same timezone awareness
+        now = datetime.now(timezone.utc)
+        
+        # If updated_at doesn't have timezone info, add UTC timezone
+        updated_at = self.updated_at
+        if updated_at.tzinfo is None:
+            updated_at = updated_at.replace(tzinfo=timezone.utc)
+        
+        return (now - updated_at) < timedelta(hours=24)

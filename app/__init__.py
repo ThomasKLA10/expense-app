@@ -64,7 +64,14 @@ def admin_required(f):
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
-
+    
+    # CRITICAL: If we're testing, ALWAYS use SQLite in-memory
+    if os.environ.get('FLASK_ENV') == 'testing' or app.config.get('TESTING', False):
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        print("USING TEST DATABASE: sqlite:///:memory:")
+    else:
+        print(f"USING PRODUCTION DATABASE: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    
     # Create uploads directory with absolute path
     uploads_dir = os.path.join(app.root_path, 'uploads')
     os.makedirs(uploads_dir, exist_ok=True)

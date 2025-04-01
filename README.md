@@ -125,17 +125,38 @@ The application provides a comprehensive API that allows programmatic access to 
 
 The application includes a comprehensive test suite to ensure functionality and reliability.
 
-### Running Tests
+### Running Tests Safely
 
-With Docker:
-```
-docker-compose exec web python -m pytest
+To run tests without affecting your production database:
+
+```bash
+./run_tests.sh
 ```
 
-Without Docker:
+When running in Docker:
+
+```bash
+docker-compose exec web ./run_tests.sh
 ```
-python -m pytest
-```
+
+### Test Database Configuration
+
+Tests use an in-memory SQLite database that is:
+- Created fresh for each test
+- Completely isolated from the production PostgreSQL database
+- Automatically destroyed after each test
+
+This ensures that:
+1. Tests never affect production data
+2. Each test runs in isolation
+3. The database state is predictable for each test
+
+### Adding New Tests
+
+When adding new tests:
+1. Place them in the `tests/` directory
+2. Use the provided fixtures (`app`, `client`, `db_session`)
+3. Never hardcode database connections
 
 ### Test Coverage
 
