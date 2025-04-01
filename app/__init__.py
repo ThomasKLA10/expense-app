@@ -18,6 +18,7 @@ import time
 from .utils.file_management import archive_processed_receipts, cleanup_temp_reports
 from .swagger import swagger_ui_blueprint, register_swagger_routes, SWAGGER_URL
 from flask_mail import Message
+from .utils.patches import apply_all_patches
 
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
@@ -60,6 +61,9 @@ def admin_required(f):
             abort(403)
         return f(*args, **kwargs)
     return decorated_function
+
+# Apply patches to fix dependency warnings
+apply_all_patches()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
