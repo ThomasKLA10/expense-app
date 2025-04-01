@@ -341,12 +341,6 @@ For production deployment:
 3. Configure a production WSGI server (Gunicorn, uWSGI)
 4. Set up a reverse proxy (Nginx, Apache)
 
-## Next Steps
-
-The application is feature-complete with only 3 remaining steps before production deployment:
-1. Configure the SMTP email settings for notifications
-2. Cronjob for file management (archive and cleanup) 
-3. Final tweaks of the application
 
 ## Email Configuration
 
