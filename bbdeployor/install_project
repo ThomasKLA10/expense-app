@@ -1,0 +1,66 @@
+#!/bin/bash
+set -e
+
+# Get SHORTNAME from bbdeployor.conf
+source bbdeployor.conf
+
+# Ensure PostgreSQL data directory exists
+mkdir -p data/postgresql
+
+# Copy schema from data/db to data/postgresql for BBDeployor
+if [ -f data/db/schema_backup.sql ]; then
+    cp data/db/schema_backup.sql data/postgresql/db.sql
+    echo "Database schema copied for BBDeployor initialization"
+fi
+
+# Set up nginx configuration
+cat > /etc/nginx/sites-available/default << 'EOF'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    
+    server_name _;
+    
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # Allow API endpoints to bypass HTTP Basic Auth
+    location /api/ {
+        proxy_pass http://127.0.0.1:5000/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+# Reload nginx
+service nginx reload
+
+# Create service script for the Flask application
+cat > "/var/www/${SHORTNAME}/run-flask.sh" << EOF
+#!/bin/bash
+cd /var/www/${SHORTNAME}
+export FLASK_APP=run.py
+export FLASK_ENV=production
+export FLASK_DEBUG=0
+exec flask run --host=0.0.0.0
+EOF
+
+chmod +x "/var/www/${SHORTNAME}/run-flask.sh"
+
+# Install the service
+bbdeployor service-install "/var/www/${SHORTNAME}/run-flask.sh" flask-app
+
+# Set up cron job for file management
+chmod +x scripts/setup-cron.sh
+./scripts/setup-cron.sh
+
+# Send notification
+bbdeployor message "Project installation completed for ${SHORTNAME}" 

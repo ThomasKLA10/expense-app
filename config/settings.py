@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 
 load_dotenv()
 
+# Detect if running in BBDeployor
+IN_BBDEPLOYOR = os.path.exists('/var/www/receiptsbonn')
+
 class Config:
     """Application configuration
     
@@ -20,9 +23,22 @@ class Config:
     - ALLOWED_EMAIL_DOMAINS: Comma-separated list of allowed email domains
     """
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    
+    # Database configuration with BBDeployor fallback
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    if not DATABASE_URL and IN_BBDEPLOYOR:
+        # Fallback for BBDeployor if DATABASE_URL is not set
+        DATABASE_URL = f"postgresql://{os.environ.get('DB_USER')}:{os.environ.get('DB_PWD')}@localhost/{os.environ.get('DB_DB')}"
+    
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    UPLOAD_FOLDER = 'app/uploads'
+    
+    # Configure upload folder based on environment
+    if IN_BBDEPLOYOR:
+        UPLOAD_FOLDER = '/var/www/receiptsbonn/app/uploads'
+    else:
+        UPLOAD_FOLDER = 'app/uploads'
+    
     SESSION_COOKIE_DOMAIN = None
     
     # Google OAuth credentials

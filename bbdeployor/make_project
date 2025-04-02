@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+# Create necessary directories
+mkdir -p app/uploads
+mkdir -p app/static/uploads
+mkdir -p app/archive
+mkdir -p temp
+mkdir -p logs
+
+# Install Python dependencies
+pip install --no-cache-dir -r requirements.txt
+
+# Create default .env if not exists
+if [ ! -f .env ]; then
+    cp config/.env.example .env
+fi
+
+# Make scripts executable
+chmod +x scripts/*.sh
+
+# Send notification
+bbdeployor message "Project build completed for receiptsbonn" 
