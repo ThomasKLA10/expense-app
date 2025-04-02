@@ -26,9 +26,20 @@ class Config:
     
     # Database configuration with BBDeployor fallback
     DATABASE_URL = os.environ.get('DATABASE_URL')
-    if not DATABASE_URL and IN_BBDEPLOYOR:
-        # Fallback for BBDeployor if DATABASE_URL is not set
-        DATABASE_URL = f"postgresql://{os.environ.get('DB_USER')}:{os.environ.get('DB_PWD')}@localhost/{os.environ.get('DB_DB')}"
+    
+    # If DATABASE_URL is not set, try to construct it from .bbproject values
+    if not DATABASE_URL:
+        try:
+            import json
+            with open('.bbproject') as f:
+                bbproject = json.load(f)
+                DB_USER = bbproject.get('DB_USER')
+                DB_PWD = bbproject.get('DB_PWD')
+                DB_DB = bbproject.get('DB_DB')
+                if DB_USER and DB_PWD and DB_DB:
+                    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PWD}@localhost/{DB_DB}"
+        except Exception as e:
+            print(f"Error loading .bbproject: {e}")
     
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False

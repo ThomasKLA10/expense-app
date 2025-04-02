@@ -13,6 +13,20 @@ if [ -f data/db/schema_backup.sql ]; then
     echo "Database schema copied for BBDeployor initialization"
 fi
 
+# Set up environment variables for database connection
+cat > .env << EOF
+SECRET_KEY=your-super-secret-key
+DATABASE_URL=postgresql://${SHORTNAME}:${SHORTNAME}@localhost/${SHORTNAME}
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-your-google-client-id}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-your-google-client-secret}
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=${MAIL_USERNAME:-your-app-notification-email@gmail.com}
+MAIL_PASSWORD=${MAIL_PASSWORD:-your-app-specific-password}
+MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER:-your-app-notification-email@gmail.com}
+BASE_URL=https://${HOSTNAME}
+EOF
+
 # Set up nginx configuration
 cat > /etc/nginx/sites-available/default << EOF
 server {
@@ -32,10 +46,10 @@ server {
     # Allow API endpoints to bypass HTTP Basic Auth
     location /api/ {
         proxy_pass http://127.0.0.1:5000/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
 EOF
@@ -49,6 +63,8 @@ cat > /etc/sv/flask-app/run << EOF
 #!/bin/bash
 cd /var/www/${SHORTNAME}
 source venv/bin/activate
+export FLASK_APP=run.py
+export FLASK_ENV=production
 exec flask run --host=127.0.0.1
 EOF
 

@@ -7,6 +7,13 @@ mkdir -p app/static/uploads
 mkdir -p app/archive
 mkdir -p temp
 mkdir -p logs
+mkdir -p data/postgresql
+
+# Copy database schema if it exists
+if [ -f data/db/schema_backup.sql ]; then
+    cp data/db/schema_backup.sql data/postgresql/db.sql
+    echo "Database schema copied for BBDeployor initialization"
+fi
 
 # Create Python virtual environment
 python3 -m venv venv
