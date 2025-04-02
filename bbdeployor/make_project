@@ -8,8 +8,13 @@ mkdir -p app/archive
 mkdir -p temp
 mkdir -p logs
 
+# Create Python virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
 # Install Python dependencies
 pip install --no-cache-dir -r requirements.txt
+deactivate
 
 # Create default .env if not exists
 if [ ! -f .env ]; then
