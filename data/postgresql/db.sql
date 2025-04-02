@@ -1,9 +1,6 @@
 --
--- PostgreSQL database dump
+-- PostgreSQL database schema for expense app
 --
-
--- Dumped from database version 13.18 (Debian 13.18-1.pgdg120+1)
--- Dumped by pg_dump version 13.18 (Debian 13.18-1.pgdg120+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -17,53 +14,35 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 SET default_tablespace = '';
-
 SET default_table_access_method = heap;
-
---
--- Name: alembic_version; Type: TABLE; Schema: public
---
-
-CREATE TABLE public.alembic_version (
-    version_num character varying(32) NOT NULL
-);
 
 --
 -- Name: receipt; Type: TABLE; Schema: public
 --
 
-CREATE TABLE public.receipt (
+CREATE TABLE IF NOT EXISTS public.receipt (
     id integer NOT NULL,
-    amount double precision NOT NULL,
-    currency character varying(3) NOT NULL,
-    category character varying(50) NOT NULL,
-    file_path character varying(200) NOT NULL,
-    date_submitted timestamp without time zone,
-    status character varying(20),
-    office character varying(50) NOT NULL,
+    date timestamp without time zone,
+    total_amount numeric(10,2),
+    currency character varying(3),
+    description text,
+    image_path character varying(255),
     user_id integer,
-    purpose character varying(200),
-    travel_from character varying(100),
-    travel_to character varying(100),
-    departure_date date,
-    return_date date
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 --
 -- Name: receipt_id_seq; Type: SEQUENCE; Schema: public
 --
 
-CREATE SEQUENCE public.receipt_id_seq
+CREATE SEQUENCE IF NOT EXISTS public.receipt_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
---
--- Name: receipt_id_seq; Type: SEQUENCE OWNED BY; Schema: public
---
 
 ALTER SEQUENCE public.receipt_id_seq OWNED BY public.receipt.id;
 
@@ -71,27 +50,27 @@ ALTER SEQUENCE public.receipt_id_seq OWNED BY public.receipt.id;
 -- Name: user; Type: TABLE; Schema: public
 --
 
-CREATE TABLE public."user" (
+CREATE TABLE IF NOT EXISTS public."user" (
     id integer NOT NULL,
-    email character varying(120) NOT NULL,
-    name character varying(120)
+    email character varying(255) NOT NULL,
+    password_hash character varying(255),
+    first_name character varying(100),
+    last_name character varying(100),
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 --
 -- Name: user_id_seq; Type: SEQUENCE; Schema: public
 --
 
-CREATE SEQUENCE public.user_id_seq
+CREATE SEQUENCE IF NOT EXISTS public.user_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
---
--- Name: user_id_seq; Type: SEQUENCE OWNED BY; Schema: public
---
 
 ALTER SEQUENCE public.user_id_seq OWNED BY public."user".id;
 
@@ -106,13 +85,6 @@ ALTER TABLE ONLY public.receipt ALTER COLUMN id SET DEFAULT nextval('public.rece
 --
 
 ALTER TABLE ONLY public."user" ALTER COLUMN id SET DEFAULT nextval('public.user_id_seq'::regclass);
-
---
--- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public
---
-
-ALTER TABLE ONLY public.alembic_version
-    ADD CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num);
 
 --
 -- Name: receipt receipt_pkey; Type: CONSTRAINT; Schema: public
@@ -136,7 +108,7 @@ ALTER TABLE ONLY public."user"
     ADD CONSTRAINT user_pkey PRIMARY KEY (id);
 
 --
--- Name: receipt receipt_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: receipt receipt_user_id_fkey; Type: FK CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.receipt
