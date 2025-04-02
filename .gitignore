@@ -10,9 +10,16 @@ app/static/uploads/*
 !app/static/uploads/.gitkeep
 # Ignore uploaded files
 app/uploads/*
-!app/uploads/.gitkeepapp/temp/
+!app/uploads/.gitkeep
+app/temp/
 temp/
 app/archive/
 logs/
 crontab
-data/
+
+# Data directory exclusions
+data/postgres/
+# Keep data/db but ignore other data subdirectories
+data/*
+!data/db/
+!data/db/*.sql
