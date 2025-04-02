@@ -28,9 +28,6 @@ CREATE TABLE public.alembic_version (
     version_num character varying(32) NOT NULL
 );
 
-
-ALTER TABLE public.alembic_version OWNER TO postgres;
-
 --
 -- Name: receipt; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -52,9 +49,6 @@ CREATE TABLE public.receipt (
     return_date date
 );
 
-
-ALTER TABLE public.receipt OWNER TO postgres;
-
 --
 -- Name: receipt_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
@@ -66,9 +60,6 @@ CREATE SEQUENCE public.receipt_id_seq
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-
-ALTER TABLE public.receipt_id_seq OWNER TO postgres;
 
 --
 -- Name: receipt_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -88,9 +79,6 @@ CREATE TABLE public."user" (
     is_admin boolean
 );
 
-
-ALTER TABLE public."user" OWNER TO postgres;
-
 --
 -- Name: user_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
@@ -102,9 +90,6 @@ CREATE SEQUENCE public.user_id_seq
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-
-ALTER TABLE public.user_id_seq OWNER TO postgres;
 
 --
 -- Name: user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
