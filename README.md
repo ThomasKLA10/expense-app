@@ -38,7 +38,7 @@ A comprehensive expense tracking and receipt management application built with F
 
 2. Create a `.env` file:
    ```
-   cp .env.example .env
+   cp config/.env.example .env
    ```
    
 3. Update the values in `.env` with your configuration
@@ -73,7 +73,7 @@ If you prefer not to use Docker:
    ```
 
 4. Set up environment variables:
-   - Copy `.env.example` to `.env`
+   - Copy `config/.env.example` to `.env`
    - Update the values in `.env` with your configuration
 
 5. Initialize the database:
@@ -97,7 +97,19 @@ If you prefer not to use Docker:
   - `routes.py`: Application routes
   - `ocr.py`: OCR processing logic
   - `pdf_generator.py`: PDF generation
+- `config/`: Configuration files
+  - `settings.py`: Application configuration
+  - `.env.example`: Example environment variables
+- `data/`: Data storage
+  - `db/`: Database schemas and backups
+- `docker/`: Docker configuration
+  - `Dockerfile`: Container definition
+  - `docker-compose.yml`: Multi-container setup
 - `migrations/`: Database migrations
+- `scripts/`: Utility scripts
+  - `run_tests.sh`: Test runner
+  - `file-management.sh`: File management utilities
+  - `setup-cron.sh`: Cron job setup
 - `tests/`: Unit tests
 
 ## API Documentation
@@ -130,13 +142,13 @@ The application includes a comprehensive test suite to ensure functionality and 
 To run tests without affecting your production database:
 
 ```bash
-./run_tests.sh
+./scripts/run_tests.sh
 ```
 
 When running in Docker:
 
 ```bash
-docker-compose exec web ./run_tests.sh
+docker-compose exec web ./scripts/run_tests.sh
 ```
 
 ### Test Database Configuration
@@ -243,18 +255,18 @@ The application includes scripts to automate file management:
    
    The application includes two scripts for automated maintenance:
    
-   - `file-management.sh`: Performs the actual file management tasks including:
+   - `scripts/file-management.sh`: Performs the actual file management tasks including:
      - Running the management command via Docker Compose
      - Creating timestamped log files
      - Rotating logs (keeping the last 10 log files)
      - Recording start and completion times
    
-   - `setup-cron.sh`: Sets up a weekly cron job (Wednesdays at 2 AM)
+   - `scripts/setup-cron.sh`: Sets up a weekly cron job (Wednesdays at 2 AM)
    
    To set up automated weekly maintenance, run the following commands:
    ```bash
-   chmod +x file-management.sh setup-cron.sh
-   ./setup-cron.sh
+   chmod +x scripts/file-management.sh scripts/setup-cron.sh
+   ./scripts/setup-cron.sh
    ```
    
    This will:
@@ -262,7 +274,7 @@ The application includes scripts to automate file management:
    - Set up a cron job to run weekly
    - Automatically use the correct paths regardless of deployment location
 
-   **Deployment Note**: When deploying to production, simply run the `setup-cron.sh` script 
+   **Deployment Note**: When deploying to production, simply run the `scripts/setup-cron.sh` script 
    once on the server. It will automatically determine the correct paths and install the 
    cron job. No manual crontab editing is required.
 
@@ -270,9 +282,9 @@ The application includes scripts to automate file management:
 
 When deploying the file management system to production:
 
-1. **Transfer Scripts**: Copy both `file-management.sh` and `setup-cron.sh` to your production server
+1. **Transfer Scripts**: Copy both `scripts/file-management.sh` and `scripts/setup-cron.sh` to your production server
 
-2. **Modify the Script**: Edit `file-management.sh` to use the appropriate command for your production environment:
+2. **Modify the Script**: Edit `scripts/file-management.sh` to use the appropriate command for your production environment:
    ```bash
    # Replace the Docker-specific command:
    # docker-compose run --rm web flask manage-files >> "$LOG_FILE" 2>&1
@@ -283,12 +295,12 @@ When deploying the file management system to production:
 
 3. **Set Permissions**: Make the scripts executable:
    ```bash
-   chmod +x file-management.sh setup-cron.sh
+   chmod +x scripts/file-management.sh scripts/setup-cron.sh
    ```
 
 4. **Run Setup Script**: Execute the setup script to install the cron job:
    ```bash
-   ./setup-cron.sh
+   ./scripts/setup-cron.sh
    ```
 
 5. **Verify Cron Installation**: Check that the cron job was installed correctly:
@@ -298,12 +310,12 @@ When deploying the file management system to production:
    
    You should see a line like:
    ```
-   0 2 * * 3 /path/to/your/file-management.sh
+   0 2 * * 3 /path/to/your/scripts/file-management.sh
    ```
 
 6. **Test Manual Execution**: Run the script manually once to verify it works:
    ```bash
-   ./file-management.sh
+   ./scripts/file-management.sh
    ```
    
    Then check the logs directory for the generated log file.
@@ -329,7 +341,7 @@ To enable Google authentication, you need to set up OAuth credentials:
 
 ### Restricting Access to Specific Domains
 
-The application is configured to only allow users with email addresses from specific domains to log in. This is controlled by the `ALLOWED_EMAIL_DOMAINS` setting in `config.py`.
+The application is configured to only allow users with email addresses from specific domains to log in. This is controlled by the `ALLOWED_EMAIL_DOMAINS` setting in `config/settings.py`.
 
 To modify the allowed domains:
 1. Edit the `ALLOWED_EMAIL_DOMAINS` variable in your `.env` file:
