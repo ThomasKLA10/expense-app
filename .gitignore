@@ -19,7 +19,9 @@ crontab
 
 # Data directory exclusions
 data/postgres/
-# Keep data/db but ignore other data subdirectories
+# Keep data/db and data/postgresql but ignore other data subdirectories
 data/*
 !data/db/
 !data/db/*.sql
+!data/postgresql/
+!data/postgresql/*.sql
