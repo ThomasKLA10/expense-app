@@ -18,4 +18,4 @@ def register_blueprints(app):
     app.register_blueprint(main)
     app.register_blueprint(admin)
     app.register_blueprint(receipt)
-    app.register_blueprint(user) 
+    app.register_blueprint(user)
