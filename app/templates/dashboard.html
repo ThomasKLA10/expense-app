@@ -46,8 +46,8 @@
                 <h1>Welcome, {{ current_user.name }}!</h1>
             </div>
             <div class="col-auto">
-                <a href="{{ url_for('upload') }}" class="btn btn-primary">
-                    <i class="bi bi-plus-lg"></i> Upload Receipt
+                <a href="{{ url_for('receipt.upload') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Upload Receipt
                 </a>
             </div>
         </div>
@@ -89,12 +89,12 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" 
+                                            <a href="{{ url_for('receipt.view_receipt', receipt_id=receipt.id) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i>
                                             </a>
                                             {% if receipt.status in ['approved', 'rejected'] %}
-                                            <form method="POST" action="{{ url_for('archive_receipt', receipt_id=receipt.id) }}" 
+                                            <form method="POST" action="{{ url_for('receipt.archive_receipt', receipt_id=receipt.id) }}" 
                                                   class="d-inline">
                                                 <button type="submit" class="btn btn-sm btn-outline-secondary">
                                                     <i class="bi bi-archive"></i>
@@ -116,7 +116,7 @@
                                 <ul class="pagination">
                                     <!-- Previous button -->
                                     <li class="page-item {% if active_receipts.page == 1 %}disabled{% endif %}">
-                                        <a class="page-link" href="{{ url_for('dashboard', page_active=active_receipts.page-1, page_archived=request.args.get('page_archived', 1)) }}" aria-label="Previous">
+                                        <a class="page-link" href="{{ url_for('main.dashboard', page_active=active_receipts.page-1, page_archived=request.args.get('page_archived', 1)) }}" aria-label="Previous">
                                             <span aria-hidden="true">&laquo;</span>
                                         </a>
                                     </li>
@@ -128,7 +128,7 @@
                                     
                                     {% if start_page > 1 %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('dashboard', page_active=1, page_archived=request.args.get('page_archived', 1)) }}">1</a>
+                                            <a class="page-link" href="{{ url_for('main.dashboard', page_active=1, page_archived=request.args.get('page_archived', 1)) }}">1</a>
                                         </li>
                                         {% if start_page > 2 %}
                                             <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -137,7 +137,7 @@
                                     
                                     {% for page in range(start_page, end_page + 1) %}
                                     <li class="page-item {% if page == active_receipts.page %}active{% endif %}">
-                                        <a class="page-link" href="{{ url_for('dashboard', page_active=page, page_archived=request.args.get('page_archived', 1)) }}">
+                                        <a class="page-link" href="{{ url_for('main.dashboard', page_active=page, page_archived=request.args.get('page_archived', 1)) }}">
                                             {{ page }}
                                         </a>
                                     </li>
@@ -148,13 +148,13 @@
                                             <li class="page-item disabled"><span class="page-link">...</span></li>
                                         {% endif %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('dashboard', page_active=active_receipts.pages, page_archived=request.args.get('page_archived', 1)) }}">{{ active_receipts.pages }}</a>
+                                            <a class="page-link" href="{{ url_for('main.dashboard', page_active=active_receipts.pages, page_archived=request.args.get('page_archived', 1)) }}">{{ active_receipts.pages }}</a>
                                         </li>
                                     {% endif %}
                                     
                                     <!-- Next button -->
                                     <li class="page-item {% if active_receipts.page == active_receipts.pages %}disabled{% endif %}">
-                                        <a class="page-link" href="{{ url_for('dashboard', page_active=active_receipts.page+1, page_archived=request.args.get('page_archived', 1)) }}" aria-label="Next">
+                                        <a class="page-link" href="{{ url_for('main.dashboard', page_active=active_receipts.page+1, page_archived=request.args.get('page_archived', 1)) }}" aria-label="Next">
                                             <span aria-hidden="true">&raquo;</span>
                                         </a>
                                     </li>
@@ -202,7 +202,7 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="{{ url_for('view_receipt', receipt_id=receipt.id) }}" 
+                                            <a href="{{ url_for('receipt.view_receipt', receipt_id=receipt.id) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i>
                                             </a>
@@ -224,7 +224,7 @@
                                 <ul class="pagination">
                                     <!-- Previous button -->
                                     <li class="page-item {% if archived_receipts.page == 1 %}disabled{% endif %}">
-                                        <a class="page-link" href="{{ url_for('dashboard', page_archived=archived_receipts.page-1, page_active=request.args.get('page_active', 1)) }}" aria-label="Previous">
+                                        <a class="page-link" href="{{ url_for('main.dashboard', page_archived=archived_receipts.page-1, page_active=request.args.get('page_active', 1)) }}" aria-label="Previous">
                                             <span aria-hidden="true">&laquo;</span>
                                         </a>
                                     </li>
@@ -236,7 +236,7 @@
                                     
                                     {% if start_page > 1 %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('dashboard', page_archived=1, page_active=request.args.get('page_active', 1)) }}">1</a>
+                                            <a class="page-link" href="{{ url_for('main.dashboard', page_archived=1, page_active=request.args.get('page_active', 1)) }}">1</a>
                                         </li>
                                         {% if start_page > 2 %}
                                             <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -245,7 +245,7 @@
                                     
                                     {% for page in range(start_page, end_page + 1) %}
                                     <li class="page-item {% if page == archived_receipts.page %}active{% endif %}">
-                                        <a class="page-link" href="{{ url_for('dashboard', page_archived=page, page_active=request.args.get('page_active', 1)) }}">
+                                        <a class="page-link" href="{{ url_for('main.dashboard', page_archived=page, page_active=request.args.get('page_active', 1)) }}">
                                             {{ page }}
                                         </a>
                                     </li>
@@ -256,13 +256,13 @@
                                             <li class="page-item disabled"><span class="page-link">...</span></li>
                                         {% endif %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('dashboard', page_archived=archived_receipts.pages, page_active=request.args.get('page_active', 1)) }}">{{ archived_receipts.pages }}</a>
+                                            <a class="page-link" href="{{ url_for('main.dashboard', page_archived=archived_receipts.pages, page_active=request.args.get('page_active', 1)) }}">{{ archived_receipts.pages }}</a>
                                         </li>
                                     {% endif %}
                                     
                                     <!-- Next button -->
                                     <li class="page-item {% if archived_receipts.page == archived_receipts.pages %}disabled{% endif %}">
-                                        <a class="page-link" href="{{ url_for('dashboard', page_archived=archived_receipts.page+1, page_active=request.args.get('page_active', 1)) }}" aria-label="Next">
+                                        <a class="page-link" href="{{ url_for('main.dashboard', page_archived=archived_receipts.page+1, page_active=request.args.get('page_active', 1)) }}" aria-label="Next">
                                             <span aria-hidden="true">&raquo;</span>
                                         </a>
                                     </li>

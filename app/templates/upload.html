@@ -100,7 +100,7 @@
     </div>
 </div>
 
-<form id="expense-form" method="POST" action="{{ url_for('submit_expense') }}" enctype="multipart/form-data">
+<form id="expense-form" method="POST" action="{{ url_for('receipt.submit_expense') }}" enctype="multipart/form-data">
     <script>
     document.getElementById('expense-form').addEventListener('submit', function(e) {
         e.preventDefault();

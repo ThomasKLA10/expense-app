@@ -7,7 +7,7 @@
             <h2>User Management</h2>
         </div>
         <div class="col-auto">
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline-primary">
                 <i class="bi bi-arrow-left"></i> Back to Dashboard
             </a>
         </div>
@@ -40,18 +40,18 @@
                             <span class="badge bg-warning ms-1" {% if not user.is_reviewer %}style="visibility: hidden"{% endif %}>Reviewer</span>
                         </td>
                         <td class="text-end">
-                            <form action="{{ url_for('toggle_reviewer', user_id=user.id) }}" method="POST" class="d-inline">
+                            <form action="{{ url_for('admin.toggle_reviewer', user_id=user.id) }}" method="POST" class="d-inline">
                                 <button type="submit" class="btn btn-sm btn-outline-warning" style="width: 60px">
                                     {{ '- Rev' if user.is_reviewer else '+ Rev' }}
                                 </button>
                             </form>
                             {% if current_user.id != user.id %}
-                                <form action="{{ url_for('toggle_admin', user_id=user.id) }}" method="POST" class="d-inline">
+                                <form action="{{ url_for('admin.toggle_admin', user_id=user.id) }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" style="width: 60px">
                                         {{ '- Adm' if user.is_admin else '+ Adm' }}
                                     </button>
                                 </form>
-                                <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" class="d-inline" 
+                                <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="POST" class="d-inline" 
                                       onsubmit="return confirm('Are you sure you want to delete this user? This will permanently delete all their receipts and history.')">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" style="width: 45px">
                                         Del
