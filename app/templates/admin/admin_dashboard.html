@@ -7,7 +7,7 @@
             <h2>Admin Dashboard</h2>
         </div>
         <div class="col-auto">
-            <a href="{{ url_for('admin_users') }}" class="btn btn-outline-primary">
+            <a href="{{ url_for('admin.admin_users') }}" class="btn btn-outline-primary">
                 <i class="bi bi-people"></i> Manage Users
             </a>
         </div>
@@ -43,7 +43,7 @@
                                     <span class="badge bg-warning">{{ receipt.status }}</span>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
+                                    <a href="{{ url_for('admin.admin_receipt_review', id=receipt.id) }}" 
                                        class="btn btn-sm btn-primary">Review</a>
                                 </td>
                             </tr>
@@ -63,7 +63,7 @@
                     <ul class="pagination">
                         <!-- Previous button -->
                         <li class="page-item {% if pending_receipts.page == 1 %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('admin_dashboard', page_pending=pending_receipts.page-1, page_processed=request.args.get('page_processed', 1)) }}" aria-label="Previous">
+                            <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_pending=pending_receipts.page-1, page_processed=request.args.get('page_processed', 1)) }}" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
@@ -75,7 +75,7 @@
                         
                         {% if start_page > 1 %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin_dashboard', page_pending=1, page_processed=request.args.get('page_processed', 1)) }}">1</a>
+                                <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_pending=1, page_processed=request.args.get('page_processed', 1)) }}">1</a>
                             </li>
                             {% if start_page > 2 %}
                                 <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -84,7 +84,7 @@
                         
                         {% for page in range(start_page, end_page + 1) %}
                         <li class="page-item {% if page == pending_receipts.page %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('admin_dashboard', page_pending=page, page_processed=request.args.get('page_processed', 1)) }}">
+                            <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_pending=page, page_processed=request.args.get('page_processed', 1)) }}">
                                 {{ page }}
                             </a>
                         </li>
@@ -95,13 +95,13 @@
                                 <li class="page-item disabled"><span class="page-link">...</span></li>
                             {% endif %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin_dashboard', page_pending=pending_receipts.pages, page_processed=request.args.get('page_processed', 1)) }}">{{ pending_receipts.pages }}</a>
+                                <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_pending=pending_receipts.pages, page_processed=request.args.get('page_processed', 1)) }}">{{ pending_receipts.pages }}</a>
                             </li>
                         {% endif %}
                         
                         <!-- Next button -->
                         <li class="page-item {% if pending_receipts.page == pending_receipts.pages %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('admin_dashboard', page_pending=pending_receipts.page+1, page_processed=request.args.get('page_processed', 1)) }}" aria-label="Next">
+                            <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_pending=pending_receipts.page+1, page_processed=request.args.get('page_processed', 1)) }}" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
                             </a>
                         </li>
@@ -158,7 +158,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('admin_receipt_review', id=receipt.id) }}" 
+                                    <a href="{{ url_for('admin.admin_receipt_review', id=receipt.id) }}" 
                                        class="btn btn-sm btn-primary">Review</a>
                                 </td>
                             </tr>
@@ -178,7 +178,7 @@
                     <ul class="pagination">
                         <!-- Previous button -->
                         <li class="page-item {% if processed_receipts.page == 1 %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('admin_dashboard', page_processed=processed_receipts.page-1, page_pending=request.args.get('page_pending', 1)) }}" aria-label="Previous">
+                            <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_processed=processed_receipts.page-1, page_pending=request.args.get('page_pending', 1)) }}" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
@@ -190,7 +190,7 @@
                         
                         {% if start_page > 1 %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin_dashboard', page_processed=1, page_pending=request.args.get('page_pending', 1)) }}">1</a>
+                                <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_processed=1, page_pending=request.args.get('page_pending', 1)) }}">1</a>
                             </li>
                             {% if start_page > 2 %}
                                 <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -199,7 +199,7 @@
                         
                         {% for page in range(start_page, end_page + 1) %}
                         <li class="page-item {% if page == processed_receipts.page %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('admin_dashboard', page_processed=page, page_pending=request.args.get('page_pending', 1)) }}">
+                            <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_processed=page, page_pending=request.args.get('page_pending', 1)) }}">
                                 {{ page }}
                             </a>
                         </li>
@@ -210,13 +210,13 @@
                                 <li class="page-item disabled"><span class="page-link">...</span></li>
                             {% endif %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin_dashboard', page_processed=processed_receipts.pages, page_pending=request.args.get('page_pending', 1)) }}">{{ processed_receipts.pages }}</a>
+                                <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_processed=processed_receipts.pages, page_pending=request.args.get('page_pending', 1)) }}">{{ processed_receipts.pages }}</a>
                             </li>
                         {% endif %}
                         
                         <!-- Next button -->
                         <li class="page-item {% if processed_receipts.page == processed_receipts.pages %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('admin_dashboard', page_processed=processed_receipts.page+1, page_pending=request.args.get('page_pending', 1)) }}" aria-label="Next">
+                            <a class="page-link" href="{{ url_for('admin.admin_dashboard', page_processed=processed_receipts.page+1, page_pending=request.args.get('page_pending', 1)) }}" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
                             </a>
                         </li>
