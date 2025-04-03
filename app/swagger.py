@@ -65,27 +65,22 @@ spec.components.schema("User", {
 def register_swagger_routes(app):
     @app.route(API_URL)
     def swagger_json():
-        return jsonify(spec.to_dict())
-    
-    # Add security requirement for all endpoints
-    spec.components.security_scheme('GoogleOAuth', {
-        'type': 'oauth2',
-        'flows': {
-            'implicit': {
-                'authorizationUrl': 'https://accounts.google.com/o/oauth2/auth',
-                'scopes': {
-                    'openid': 'OpenID Connect',
-                    'email': 'Email access',
-                    'profile': 'Profile information'
+        # Add security scheme to components
+        spec.components.security_scheme('GoogleOAuth', {
+            'type': 'oauth2',
+            'flows': {
+                'implicit': {
+                    'authorizationUrl': 'https://accounts.google.com/o/oauth2/auth',
+                    'scopes': {
+                        'openid': 'OpenID Connect',
+                        'email': 'Email access',
+                        'profile': 'Profile information'
+                    }
                 }
             }
-        }
-    })
-    
-    # Add global security requirement
-    for path in spec.paths:
-        for operation in spec.paths[path].operations.values():
-            operation.setdefault('security', []).append({'GoogleOAuth': []})
+        })
+        
+        return jsonify(spec.to_dict())
     
     # Document receipt endpoints
     spec.path(
