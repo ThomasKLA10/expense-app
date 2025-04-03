@@ -36,28 +36,38 @@ View it here: {url_for('admin_receipt_review', id=receipt.id, _external=True)}
 
 def send_receipt_status_notification(receipt):
     """Send notification to user about receipt approval/rejection"""
-    msg = Message(
-        subject=f"Receipt {receipt.status.title()}",
-        recipients=[receipt.user.email],
-        body=f"""
-Your receipt has been {receipt.status}.
-
-View details here: {url_for('view_receipt', receipt_id=receipt.id, _external=True)}
-
-- BB Receipt App
-        """,
-        html=render_template('emails/receipt_status.html',
-            receipt=receipt,
-            receipt_url=url_for('view_receipt', receipt_id=receipt.id, _external=True)
+    try:
+        receipt_url = url_for('receipt.view_receipt', receipt_id=receipt.id, _external=True)
+        
+        # Create the email message
+        msg = Message(
+            f"Receipt {receipt.status.title()}",
+            recipients=[receipt.user.email]
         )
-    )
-    
-    # Attach receipt PDF if it exists
-    if receipt.file_path_db:
-        with current_app.open_resource(receipt.file_path_db) as fp:
-            msg.attach("receipt.pdf", "application/pdf", fp.read())
-            
-    mail.send(msg)
+        
+        # Set the email body
+        msg.body = f"""
+        Your receipt has been {receipt.status}.
+        
+        Amount: {receipt.currency} {receipt.amount:.2f}
+        Category: {receipt.category}
+        
+        View details here: {receipt_url}
+        """
+        
+        # Set the HTML content
+        msg.html = render_template(
+            'emails/receipt_status.html',
+            receipt=receipt,
+            receipt_url=receipt_url
+        )
+        
+        # Send the email
+        mail.send(msg)
+        current_app.logger.info(f"Sent status notification email to {receipt.user.email}")
+        
+    except Exception as e:
+        current_app.logger.error(f"Failed to send status notification: {str(e)}")
 
 def notify_reviewers_of_new_receipt(receipt):
     """Notify all reviewers about a new receipt submission."""
