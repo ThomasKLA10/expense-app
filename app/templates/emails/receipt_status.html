@@ -127,6 +127,9 @@
                 <ul>
                     <li><strong>Amount:</strong> {{ receipt.currency }} {{ "%.2f"|format(receipt.amount) }}</li>
                     <li><strong>Date Submitted:</strong> {{ receipt.date_submitted.strftime('%B %d, %Y at %H:%M') }}</li>
+                    {% if receipt.comment %}
+                    <li><strong>Comment:</strong> {{ receipt.comment }}</li>
+                    {% endif %}
                     <li><strong>Category:</strong> {{ receipt.category }}</li>
                     {% if receipt.description %}
                     <li><strong>Description:</strong> {{ receipt.description }}</li>
