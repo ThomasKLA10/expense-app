@@ -65,6 +65,9 @@
         .receipt-details li {
             padding: 8px 0;
             border-bottom: 1px solid #eaeaea;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
         }
         .receipt-details li:last-child {
             border-bottom: none;
@@ -125,8 +128,8 @@
                     {% if receipt.description %}
                     <li><strong>Description:</strong> {{ receipt.description }}</li>
                     {% endif %}
-                    {% if receipt.reviewer_notes and receipt.status.lower() == 'rejected' %}
-                    <li><strong>Rejection Reason:</strong> {{ receipt.reviewer_notes }}</li>
+                    {% if receipt.reviewer_notes %}
+                    <li><strong>Reviewer Notes:</strong> {{ receipt.reviewer_notes }}</li>
                     {% endif %}
                 </ul>
             </div>

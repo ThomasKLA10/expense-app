@@ -39,8 +39,8 @@
                         <div class="form-group mb-4">
                             <label for="reviewer_notes" class="form-label">Reviewer Notes</label>
                             <textarea class="form-control" id="reviewer_notes" name="reviewer_notes" rows="3" 
-                                    placeholder="Add notes about this receipt (will be included in notification email)">{{ receipt.reviewer_notes or '' }}</textarea>
-                            <small class="text-muted">These notes will be visible to the user and included in the notification email.</small>
+                                    maxlength="100" placeholder="Add notes about this receipt (max 100 characters)">{{ receipt.reviewer_notes or '' }}</textarea>
+                            <small class="text-muted">These notes will be visible to the user and included in the notification email. <span id="char-count">100</span> characters remaining.</small>
                         </div>
                         
                         <div class="d-grid gap-2">
@@ -87,11 +87,5 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
-    // Copy notes to the reject form when submitting
-    document.querySelector('form[action*="reject"]').addEventListener('submit', function() {
-        const notes = document.getElementById('reviewer_notes').value;
-        document.getElementById('reject_notes').value = notes;
-    });
-</script>
+<script src="{{ url_for('static', filename='js/receipt_review.js') }}"></script>
 {% endblock %}
