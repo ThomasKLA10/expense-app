@@ -151,25 +151,3 @@ def process_receipt():
         print(f"Server error: {str(e)}")  # Debug print
         return jsonify({'error': 'Server error occurred'})
 
-@main.route('/test_rate_limit', methods=['GET'])
-@rate_limit  # Apply the rate limiter
-def test_rate_limit():
-    """Simple endpoint to test rate limiting"""
-    # Print the current state of the rate limiter for this user/IP
-    if current_user.is_authenticated:
-        identifier = f"user:{current_user.id}"
-        user_info = f"User: {current_user.name} (ID: {current_user.id})"
-    else:
-        identifier = f"ip:{request.remote_addr}"
-        user_info = f"IP: {request.remote_addr}"
-    
-    count = len(rate_limiter.request_logs.get(identifier, []))
-    print(f"{user_info}, Request count: {count}")
-    
-    return jsonify({
-        "success": True, 
-        "message": "Request successful", 
-        "count": count,
-        "identifier": identifier,
-        "limit": rate_limiter.limit
-    }) 
