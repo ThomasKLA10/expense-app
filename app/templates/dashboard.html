@@ -80,13 +80,17 @@
                                         <td>{{ receipt.category|title }}</td>
                                         <td>{{ "%.2f"|format(receipt.amount) }} {{ receipt.currency }}</td>
                                         <td>
-                                            {% if receipt.status == 'pending' %}
-                                                <span class="badge bg-warning">Pending</span>
-                                            {% elif receipt.status == 'approved' %}
-                                                <span class="badge bg-success">Approved</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Rejected</span>
-                                            {% endif %}
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    {% if receipt.status == 'pending' %}
+                                                        <span class="badge bg-warning">Pending</span>
+                                                    {% elif receipt.status == 'approved' %}
+                                                        <span class="badge bg-success">Approved</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Rejected</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
                                             <a href="{{ url_for('receipt.view_receipt', receipt_id=receipt.id) }}" 
@@ -193,22 +197,27 @@
                                         <td>{{ receipt.category|title }}</td>
                                         <td>{{ "%.2f"|format(receipt.amount) }} {{ receipt.currency }}</td>
                                         <td>
-                                            {% if receipt.status == 'approved' %}
-                                                <span class="badge bg-success">Approved</span>
-                                            {% elif receipt.status in ['rejected', 'rejectd'] %}
-                                                <span class="badge bg-danger">Rejected</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">{{ receipt.status|title }}</span>
-                                            {% endif %}
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    {% if receipt.status == 'approved' %}
+                                                        <span class="badge bg-success">Approved</span>
+                                                    {% elif receipt.status in ['rejected', 'rejectd'] %}
+                                                        <span class="badge bg-danger">Rejected</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">{{ receipt.status|title }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                {% if receipt.is_recently_updated %}
+                                                    <span class="badge bg-primary new-badge ms-2">New</span>
+                                                {% endif %}
+                                            </div>
                                         </td>
                                         <td>
                                             <a href="{{ url_for('receipt.view_receipt', receipt_id=receipt.id) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-                                            {% if receipt.is_recently_updated %}
-                                                <span class="badge bg-primary new-badge">New</span>
-                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
