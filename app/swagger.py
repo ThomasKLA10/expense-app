@@ -240,6 +240,7 @@ def register_swagger_routes(app):
                     },
                     "400": {"description": "Invalid file"},
                     "415": {"description": "Unsupported file type"},
+                    "429": {"description": "Rate limit exceeded"},
                     "500": {"description": "OCR processing failed"}
                 }
             }
