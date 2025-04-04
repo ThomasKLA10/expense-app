@@ -230,31 +230,78 @@ class ExpenseReportGenerator:
     @staticmethod
     def merge_with_receipts(summary_pdf, receipt_paths):
         try:
-            merger = PdfMerger()
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.pagesizes import A4
+            from PyPDF2 import PdfReader, PdfWriter
+            import io
+            
+            # Create a new PDF writer for the final document
+            final_writer = PdfWriter()
             
             # Add the summary PDF first
-            merger.append(summary_pdf)
+            summary_reader = PdfReader(summary_pdf)
+            for page in summary_reader.pages:
+                final_writer.add_page(page)
             
             # Process and add each receipt
             for receipt_path in receipt_paths:
-                if receipt_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
-                    # Convert image to PDF
-                    img = Image.open(receipt_path)
-                    pdf_path = receipt_path.rsplit('.', 1)[0] + '_temp.pdf'
-                    img.save(pdf_path, 'PDF', resolution=100.0)
-                    merger.append(pdf_path)
-                    # Clean up temporary PDF
-                    os.remove(pdf_path)
+                if receipt_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff')):
+                    try:
+                        # Open image
+                        img = Image.open(receipt_path)
+                        
+                        # Convert to RGB if needed
+                        if img.mode not in ('RGB', 'L'):
+                            img = img.convert('RGB')
+                        
+                        # Create a PDF with reportlab
+                        packet = io.BytesIO()
+                        c = canvas.Canvas(packet, pagesize=A4)
+                        width, height = A4
+                        
+                        # Calculate dimensions to COMPLETELY fill the page (100%)
+                        img_ratio = img.width / img.height
+                        page_ratio = width / height
+                        
+                        if img_ratio > page_ratio:
+                            # Image is wider than page ratio - fit to width
+                            new_width = width  # Use 100% of page width
+                            new_height = new_width / img_ratio
+                        else:
+                            # Image is taller than page ratio - fit to height
+                            new_height = height  # Use 100% of page height
+                            new_width = new_height * img_ratio
+                        
+                        # Calculate position to center the image
+                        x = (width - new_width) / 2
+                        y = (height - new_height) / 2
+                        
+                        # Draw the image on the canvas
+                        c.drawImage(receipt_path, x, y, width=new_width, height=new_height)
+                        c.save()
+                        
+                        # Create a new PDF with the image
+                        packet.seek(0)
+                        new_pdf = PdfReader(packet)
+                        final_writer.add_page(new_pdf.pages[0])
+                        
+                    except Exception as e:
+                        print(f"Error processing image {receipt_path}: {str(e)}")
                 else:
-                    # Assume it's already a PDF
-                    merger.append(receipt_path)
+                    # For existing PDFs
+                    try:
+                        reader = PdfReader(receipt_path)
+                        for page in reader.pages:
+                            final_writer.add_page(page)
+                    except Exception as e:
+                        print(f"Error processing PDF {receipt_path}: {str(e)}")
             
             # Generate final PDF path
             final_path = summary_pdf.replace('_summary.pdf', '_complete.pdf')
             
             # Write the complete PDF
-            merger.write(final_path)
-            merger.close()
+            with open(final_path, 'wb') as f:
+                final_writer.write(f)
             
             # Clean up summary PDF
             os.remove(summary_pdf)
@@ -264,5 +311,4 @@ class ExpenseReportGenerator:
             import traceback
             print(f"Error merging PDFs: {str(e)}")
             print(traceback.format_exc())
-            # Return the summary PDF as fallback
             return summary_pdf 
