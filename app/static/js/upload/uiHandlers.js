@@ -112,6 +112,20 @@ function handleFormSubmission(e) {
     e.preventDefault();
     console.log('Submit button clicked');
     
+    // Get the submit button
+    const submitButton = document.getElementById('submit-form');
+    
+    // Prevent multiple submissions
+    if (submitButton.disabled) {
+        console.log('Form already being submitted');
+        return;
+    }
+    
+    // Disable the button and show loading state
+    submitButton.disabled = true;
+    const originalText = submitButton.innerHTML;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+    
     // Validate required fields
     const expenseLines = document.querySelectorAll('.expense-line');
     let isValid = true;
@@ -147,6 +161,9 @@ function handleFormSubmission(e) {
 
     if (!isValid) {
         alert(errorMessage);
+        // Re-enable the button if validation fails
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
         return;
     }
 
@@ -212,11 +229,18 @@ function handleFormSubmission(e) {
         if (data.success) {
             window.location.href = data.redirect;
         } else {
+            // Re-enable the button on error
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
             alert('Error: ' + data.error);
         }
     })
     .catch(error => {
         console.error('Error:', error);
+        // Re-enable the button on error
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+        
         const errorMessage = document.createElement('div');
         errorMessage.className = 'alert alert-danger mt-3';
         errorMessage.textContent = 'Unable to submit the form. Please check your inputs and try again.';
