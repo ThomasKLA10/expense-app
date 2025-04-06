@@ -119,8 +119,9 @@ def process_image(image_path):
         result['total'] = extract_amount(text_lower, lines, result['currency'], original_text)
         result['date'] = extract_date(text_lower, original_text)
         
-        # Format the total to always have 2 decimal places if it's not None
+        # Ensure amount is always positive for expense tracking
         if result['total'] is not None:
+            result['total'] = abs(result['total'])
             # Round to 2 decimal places
             result['total'] = round(result['total'] * 100) / 100
         
@@ -350,6 +351,49 @@ def extract_date(text_lower, original_text):
     try:
         logger.debug("Extracting date from text")
         
+        # First, look for German format dates with month names (e.g., "2. Januar 2025")
+        german_month_names = {
+            'januar': 1, 'februar': 2, 'märz': 3, 'april': 4, 'mai': 5, 'juni': 6,
+            'juli': 7, 'august': 8, 'september': 9, 'oktober': 10, 'november': 11, 'dezember': 12
+        }
+        
+        german_date_pattern = re.compile(r'(\d{1,2})\.\s*(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember)\s*(\d{4})', re.IGNORECASE)
+        german_date_match = german_date_pattern.search(text_lower)
+        
+        if german_date_match:
+            day, month_name, year = german_date_match.groups()
+            month = german_month_names[month_name.lower()]
+            
+            try:
+                day = int(day)
+                year = int(year)
+                
+                if 1 <= day <= 31 and 2000 <= year <= 2100:
+                    formatted_date = f"{year}-{month:02d}-{day:02d}"
+                    logger.info(f"Found German date with month name: {formatted_date}")
+                    return formatted_date
+            except ValueError:
+                logger.debug("Invalid German date components")
+        
+        # Check for a date under "Wertstellungsdatum" (value date in German banking)
+        value_date_pattern = re.compile(r'wertstellungsdatum.*?(\d{1,2})\.?\s*(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember)\s*(\d{4})', re.IGNORECASE)
+        value_date_match = value_date_pattern.search(text_lower)
+        
+        if value_date_match:
+            day, month_name, year = value_date_match.groups()
+            month = german_month_names[month_name.lower()]
+            
+            try:
+                day = int(day)
+                year = int(year)
+                
+                if 1 <= day <= 31 and 2000 <= year <= 2100:
+                    formatted_date = f"{year}-{month:02d}-{day:02d}"
+                    logger.info(f"Found date under Wertstellungsdatum: {formatted_date}")
+                    return formatted_date
+            except ValueError:
+                logger.debug("Invalid value date components")
+        
         # First, look for expense table dates (common in expense reports)
         expense_date_match = None
         
@@ -539,8 +583,18 @@ def extract_amount(text_lower, lines, currency_symbol, original_text):
     try:
         logger.debug("Extracting amount from text")
         
-        # First, look for a line with "TOTAL" (exact match) and a number
-        total_amount = None
+        # First, look for negative amounts with currency symbols (bank statements often show these)
+        negative_amount_pattern = re.compile(r'-\s*([0-9,.]+)\s*(?:€|eur|euro|usd|\$|gbp|£)', re.IGNORECASE)
+        for line in lines:
+            match = negative_amount_pattern.search(line)
+            if match:
+                amount_str = match.group(1).replace(',', '.')
+                try:
+                    amount = -float(amount_str)  # Make sure it's negative
+                    logger.info(f"Negative amount found: {amount}")
+                    return amount
+                except ValueError:
+                    continue
         
         # Check for exact TOTAL keyword with currency symbol (not subtotal)
         for line in lines:
