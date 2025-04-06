@@ -261,8 +261,8 @@ def get_image_dimensions(image_path):
 def extract_text_from_image(image_path):
     """Extract text from an image using OCR."""
     try:
-        # Use pytesseract to extract text
-        text = pytesseract.image_to_string(Image.open(image_path))
+        # Use pytesseract to extract text with English and German languages only
+        text = pytesseract.image_to_string(Image.open(image_path), lang='eng+deu')
         return text
     except Exception as e:
         logger.error(f"Error extracting text from image: {str(e)}")

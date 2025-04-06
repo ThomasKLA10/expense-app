@@ -10,9 +10,6 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-eng \
     tesseract-ocr-deu \
-    tesseract-ocr-nor \
-    tesseract-ocr-spa \
-    tesseract-ocr-nld \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 

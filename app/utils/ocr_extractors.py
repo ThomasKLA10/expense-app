@@ -14,7 +14,7 @@ def extract_currency(text_lower):
     Returns:
         str: Detected currency code or None
     """
-    # Currency patterns
+    # Currency patterns - only EUR and USD for MVP
     currency_patterns = {
         'EUR': [
             r'€',                 # €
@@ -28,27 +28,6 @@ def extract_currency(text_lower):
             r'\busd\b',           # USD
             r'\bdollar',          # dollar
             r'\$\s*\d'            # $ followed by number
-        ],
-        'GBP': [
-            r'£',                 # £
-            r'\bgbp\b',           # GBP
-            r'\bpound',           # pound
-            r'\d\s*£',            # number followed by £
-            r'gbp\s*\d'           # GBP followed by number
-        ],
-        'NOK': [
-            r'\bnok\b',           # NOK
-            r'kr',                # kr
-            r'krone',             # krone
-            r'\d\s*kr',           # number followed by kr
-            r'kr\s*\d'            # kr followed by number
-        ],
-        'CHF': [
-            r'\bchf\b',           # CHF
-            r'fr\.',              # Fr.
-            r'franken',           # franken
-            r'\d\s*chf',          # number followed by CHF
-            r'chf\s*\d'           # CHF followed by number
         ]
     }
     
@@ -72,11 +51,11 @@ def extract_amount(text_lower, lines, currency=None, original_text=None):
     Returns:
         float: Extracted amount or None if not found
     """
-    # Look for common patterns indicating total amount
-    total_keywords = ['total', 'sum', 'amount', 'due', 'pay', 'balance', 'summe', 'betrag', 'totaal', 'beløp', 'importe', 'monto']
+    # Look for common patterns indicating total amount - English and German only
+    total_keywords = ['total', 'sum', 'amount', 'due', 'pay', 'balance', 'summe', 'betrag']
     
     # Try to find amount with currency symbol first
-    currency_symbols = {'USD': '$', 'EUR': '€', 'GBP': '£', 'NOK': 'kr', 'SEK': 'kr', 'DKK': 'kr'}
+    currency_symbols = {'USD': '$', 'EUR': '€'}
     symbol = currency_symbols.get(currency, '')
     
     # German receipt specific patterns - check these first
@@ -209,7 +188,7 @@ def extract_date(text_lower, original_text=None):
         r'(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})',
         # YYYY/MM/DD
         r'(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})',
-        # Month name formats
+        # Month name formats (English only)
         r'(\d{1,2})\s?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s?(\d{2,4})',
         r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s?(\d{1,2})[\s,]+(\d{2,4})'
     ]
@@ -253,8 +232,8 @@ def extract_date(text_lower, original_text=None):
             except (ValueError, IndexError):
                 continue
     
-    # Look for date keywords
-    date_keywords = ['date', 'datum', 'fecha', 'dato']
+    # Look for date keywords - English and German only
+    date_keywords = ['date', 'datum']
     for line in text_lower.split('\n'):
         for keyword in date_keywords:
             if keyword in line:
