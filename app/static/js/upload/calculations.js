@@ -14,7 +14,7 @@ async function calculateTotal() {
         
         if (!amountInput || !currencySelect || !dateInput) continue;
         
-        const amount = parseFloat(amountInput.value) || 0;
+        const amount = sanitizeAmount(amountInput.value);
         const currency = currencySelect.value;
         const date = dateInput.value || new Date().toISOString().split('T')[0];
         
@@ -24,7 +24,7 @@ async function calculateTotal() {
                 console.log(`Adding EUR amount: ${amount}`);
             } else {
                 const rate = await getExchangeRate(currency, 'EUR', date);
-                const convertedAmount = amount * rate;  // Remove the 1/rate, use rate directly
+                const convertedAmount = amount * rate;
                 totalEUR += convertedAmount;
                 console.log(`Adding converted amount: ${convertedAmount} EUR (from ${amount} ${currency})`);
             }
@@ -42,10 +42,18 @@ async function updateLineCalculation(line) {
     const dateInput = line.querySelector('input[type="date"]');
     const calculator = line.querySelector('.calculator');
     
+    // Sanitize the input value to ensure it's positive
+    if (amountInput.value) {
+        const sanitizedValue = sanitizeAmount(amountInput.value);
+        if (sanitizedValue.toString() !== amountInput.value) {
+            amountInput.value = sanitizedValue.toString();
+        }
+    }
+    
     if (amountInput.value && currencySelect.value !== 'EUR') {
         const date = dateInput.value || new Date().toISOString().split('T')[0];
         const rate = await getExchangeRate(currencySelect.value, 'EUR', date);
-        const amount = parseFloat(amountInput.value);
+        const amount = sanitizeAmount(amountInput.value);
         const convertedAmount = (amount * rate).toFixed(2);
         const conversionText = line.querySelector('.conversion-text');
         if (conversionText) {
@@ -80,4 +88,11 @@ async function handleInputChange(target) {
     }
 }
 
-export { calculateTotal, updateLineCalculation, updateAllCalculations, handleInputChange }; 
+// Add this function to sanitize input values
+function sanitizeAmount(value) {
+    // Convert to number and ensure it's positive
+    const num = Math.abs(parseFloat(value) || 0);
+    return isNaN(num) ? 0 : num;
+}
+
+export { calculateTotal, updateLineCalculation, updateAllCalculations, handleInputChange, sanitizeAmount }; 

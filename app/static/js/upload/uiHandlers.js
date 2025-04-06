@@ -1,4 +1,4 @@
-import { updateLineCalculation, calculateTotal, updateAllCalculations, handleInputChange } from './calculations.js';
+import { updateLineCalculation, calculateTotal, updateAllCalculations, handleInputChange, sanitizeAmount } from './calculations.js';
 import { handleFileInputChange, handleViewReceipt, allowedFile } from './fileHandling.js';
 
 // Add line button functionality
@@ -27,7 +27,7 @@ function addExpenseLine() {
                                 <option value="AED">د.إ AED</option>
                             </select>
                         </div>
-                        <input type="number" class="form-control amount-input" step="0.01" placeholder="0.00">
+                        <input type="number" class="form-control amount-input" step="0.01" min="0" placeholder="0.00" onkeydown="return event.key !== '-' && event.key !== '+'">
                     </div>
                     <div class="calculator">
                         <div class="line-conversion">
@@ -146,6 +146,17 @@ function handleFormSubmission(e) {
         if (!dateInput?.value || !descriptionInput?.value || !amountInput?.value) {
             errorMessage = `Please fill all required fields in expense line ${index + 1}`;
             isValid = false;
+        }
+        
+        // Ensure amount is positive
+        if (amountInput?.value) {
+            const sanitizedAmount = sanitizeAmount(amountInput.value);
+            if (sanitizedAmount <= 0) {
+                errorMessage = `Amount must be greater than zero in expense line ${index + 1}`;
+                isValid = false;
+            }
+            // Update the input with sanitized value
+            amountInput.value = sanitizedAmount.toString();
         }
     });
 
