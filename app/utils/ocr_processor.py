@@ -130,13 +130,17 @@ def process_image(image_path):
         # Try to find totals using keywords
         potential_totals = extract_total_from_keywords(original_text)
         
-        # If we found potential totals
+        # If we found potential totals and they're in a reasonable range
         if potential_totals:
-            # Use the most reasonable amount (not too large, not too small)
+            # Check if we have a currency-tagged amount
+            has_currency_amount = result.get('currency') is not None and result.get('total') is not None
+            
             for amount, match_text in potential_totals:
-                if 1 <= amount <= 500:  # Reasonable range for most receipts
-                    # If current total is None or seems unreasonable, replace it
-                    if result['total'] is None or result['total'] > 500 or abs(result['total'] - amount) > 50:
+                if 1 <= amount <= 500:
+                    # Only replace if:
+                    # 1. We don't have a currency-tagged amount, OR
+                    # 2. The current amount is unreasonable (too large)
+                    if not has_currency_amount or result['total'] > 100:
                         logger.info(f"Replacing amount {result['total']} with {amount} from '{match_text}'")
                         result['total'] = amount
                         break
@@ -835,7 +839,7 @@ def extract_total_from_keywords(text):
     # List of keywords that often precede total amounts
     total_keywords = [
         'total', 'summe', 'betrag', 'amount', 'sum', 'zu zahlen', 
-        'gesamtbetrag', 'endbetrag', 'kredit', 'zahlung', 'zw-sunme'
+        'gesamtbetrag', 'endbetrag', 'kredit', 'zahlung', 'zw-summe', 'bar'
     ]
     
     # Create a pattern that looks for any of these keywords followed by numbers
@@ -846,7 +850,15 @@ def extract_total_from_keywords(text):
     for match in matches:
         try:
             euros, cents = match.groups()
+            # Ensure cents are properly handled (always 2 digits)
+            if len(cents) == 1:
+                cents = cents + '0'
+            elif len(cents) > 2:
+                cents = cents[:2]
+                
             amount = float(euros) + float(cents) / 100
+            # Round to exactly 2 decimal places
+            amount = round(amount * 100) / 100
             amounts.append((amount, match.group(0)))
             logger.debug(f"Found potential amount: {amount} from '{match.group(0)}'")
         except (ValueError, IndexError):
