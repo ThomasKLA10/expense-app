@@ -119,6 +119,14 @@ def process_image(image_path):
         result['total'] = extract_amount(text_lower, lines, result['currency'], original_text)
         result['date'] = extract_date(text_lower, original_text)
         
+        # If total seems incorrect, try German amount format as last resort
+        german_amount = extract_german_amount(original_text)
+        if german_amount:
+            # Only override if the German amount is different and seems more reasonable
+            if result['total'] is None or abs(result['total'] - german_amount) > 5:
+                result['total'] = german_amount
+                logger.info(f"Found German amount format: {german_amount}")
+        
         # Ensure amount is always positive for expense tracking
         if result['total'] is not None:
             result['total'] = abs(result['total'])
@@ -256,6 +264,13 @@ def process_image(image_path):
             except Exception as e:
                 logger.warning(f"Error in secondary date extraction: {str(e)}")
         
+        # If date is still None, try German date format as last resort
+        if result['date'] is None:
+            german_date = extract_german_date(original_text)
+            if german_date:
+                result['date'] = german_date
+                logger.info(f"Found German date format: {german_date}")
+        
         logger.info(f"Final OCR Results: {result}")
         
         # Clean up temporary files
@@ -351,7 +366,42 @@ def extract_date(text_lower, original_text):
     try:
         logger.debug("Extracting date from text")
         
-        # First, look for German format dates with month names (e.g., "2. Januar 2025")
+        # First, look for payment date patterns
+        payment_date_patterns = [
+            # "Date paid January 6, 2025"
+            r'date\s+paid\s+(\w+)\s+(\d{1,2}),?\s+(\d{4})',
+            # "paid on January 6, 2025"
+            r'paid\s+on\s+(\w+)\s+(\d{1,2}),?\s+(\d{4})',
+            # "Payment date: January 6, 2025"
+            r'payment\s+date:?\s+(\w+)\s+(\d{1,2}),?\s+(\d{4})'
+        ]
+        
+        english_month_names = {
+            'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
+            'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12,
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7, 'aug': 8, 
+            'sep': 9, 'sept': 9, 'oct': 10, 'nov': 11, 'dec': 12
+        }
+        
+        for pattern in payment_date_patterns:
+            payment_match = re.search(pattern, text_lower, re.IGNORECASE)
+            if payment_match:
+                month_name, day, year = payment_match.groups()
+                month = english_month_names.get(month_name.lower())
+                
+                if month:
+                    try:
+                        day = int(day)
+                        year = int(year)
+                        
+                        if 1 <= day <= 31 and 2000 <= year <= 2100:
+                            formatted_date = f"{year}-{month:02d}-{day:02d}"
+                            logger.info(f"Found payment date: {formatted_date}")
+                            return formatted_date
+                    except ValueError:
+                        logger.debug("Invalid payment date components")
+        
+        # Then check for German format dates with month names
         german_month_names = {
             'januar': 1, 'februar': 2, 'märz': 3, 'april': 4, 'mai': 5, 'juni': 6,
             'juli': 7, 'august': 8, 'september': 9, 'oktober': 10, 'november': 11, 'dezember': 12
@@ -717,3 +767,51 @@ def extract_amount(text_lower, lines, currency_symbol, original_text):
     except Exception as e:
         logger.error(f"Error extracting amount: {str(e)}")
         return None 
+
+def extract_german_date(text):
+    """Extract date in German format (DD.MM.YYYY) from text"""
+    # Look for dates in format "10. 10. 2024" or "10.10.2024"
+    german_date_pattern = re.compile(r'datum:?\s*(\d{1,2})\.?\s*(\d{1,2})\.?\s*(\d{4})', re.IGNORECASE)
+    match = german_date_pattern.search(text)
+    
+    if match:
+        day, month, year = match.groups()
+        try:
+            day = int(day)
+            month = int(month)
+            year = int(year)
+            
+            if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
+                return f"{year}-{month:02d}-{day:02d}"
+        except ValueError:
+            pass
+    
+    return None 
+
+def extract_german_amount(text):
+    """Extract amount in German format from text"""
+    # Look for "SUMME EUR XX,XX" pattern
+    summe_pattern = re.compile(r'summe\s+eur\s+(\d+)[,.](\d+)', re.IGNORECASE)
+    match = summe_pattern.search(text)
+    
+    if match:
+        euros, cents = match.groups()
+        try:
+            amount = float(euros) + float(cents) / 100
+            return amount
+        except ValueError:
+            pass
+            
+    # Also look for "Betrag EUR XX,XX" pattern (common in German receipts)
+    betrag_pattern = re.compile(r'betrag\s+eur\s+(\d+)[,.](\d+)', re.IGNORECASE)
+    match = betrag_pattern.search(text)
+    
+    if match:
+        euros, cents = match.groups()
+        try:
+            amount = float(euros) + float(cents) / 100
+            return amount
+        except ValueError:
+            pass
+    
+    return None 
