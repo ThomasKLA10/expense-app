@@ -39,12 +39,14 @@ async function processReceiptOCR(file, line) {
                 }
             }
             
-            // Update amount if found
+            // Update amount if found - format to 2 decimal places
             if (results.total) {
-                console.log('Setting amount:', results.total);
+                // Format to exactly 2 decimal places
+                const formattedTotal = parseFloat(results.total).toFixed(2);
+                console.log('Setting amount:', formattedTotal);
                 const amountInput = line.querySelector('.amount-input');
                 if (amountInput) {
-                    amountInput.value = results.total;
+                    amountInput.value = formattedTotal;
                     amountInput.dispatchEvent(new Event('input'));
                 }
             }

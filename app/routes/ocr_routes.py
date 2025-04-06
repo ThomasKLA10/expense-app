@@ -109,45 +109,28 @@ def ocr():
 @main.route('/process_receipt', methods=['POST'])
 @rate_limit  # Using the improved rate limiting decorator
 def process_receipt():
-    print("Receipt processing endpoint hit")  # Debug print
-    try:
-        if 'file' not in request.files:
-            print("No file in request")  # Debug print
-            return jsonify({'error': 'No file provided'})
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
         
-        file = request.files['file']
-        if file.filename == '':
-            print("No filename")  # Debug print
-            return jsonify({'error': 'No file selected'})
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
         
-        if file and allowed_file(file.filename):
-            print(f"Processing file: {file.filename}")  # Debug print
-            
-            # Save file temporarily
-            temp_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'temp_' + secure_filename(file.filename))
-            file.save(temp_path)
-            
-            try:
-                # Process the receipt
-                scanner = ReceiptScanner()
-                results = scanner.process_receipt(temp_path)
-                print(f"OCR Results: {results}")  # Debug print
-                
-                # Clean up temp file
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-                
-                return jsonify(results)
-                
-            except Exception as e:
-                print(f"Error processing receipt: {str(e)}")  # Debug print
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-                return jsonify({'error': str(e)})
-            
-        return jsonify({'error': 'Invalid file type'})
-        
-    except Exception as e:
-        print(f"Server error: {str(e)}")  # Debug print
-        return jsonify({'error': 'Server error occurred'})
+    # Save the file temporarily
+    temp_dir = os.path.join(current_app.root_path, 'uploads')
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_path = os.path.join(temp_dir, f"temp_{file.filename}")
+    file.save(temp_path)
+    
+    # Process the receipt
+    print("Processing file:", file.filename)
+    scanner = ReceiptScanner()
+    result = scanner.scan_receipt(temp_path)
+    
+    # Format the total to always have 2 decimal places
+    if result.get('total') is not None:
+        result['total'] = float(f"{result['total']:.2f}")
+    
+    print("OCR Results:", result)
+    return jsonify(result)
 

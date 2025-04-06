@@ -59,156 +59,231 @@ def extract_currency(text_lower):
     
     return None
 
-def extract_amount(text_lower, lines, currency=None):
+def extract_amount(text_lower, lines, currency=None, original_text=None):
     """
-    Extract total amount from OCR text.
+    Extract the total amount from OCR text.
+    
     Args:
         text_lower (str): Lowercase OCR text
-        lines (list): List of text lines
+        lines (list): OCR text split into lines
         currency (str): Detected currency code
+        original_text (str): Original OCR text with case preserved
+        
     Returns:
-        float: Extracted amount or None
+        float: Extracted amount or None if not found
     """
-    # Strategy 1: Find explicit total line
-    for line in lines:
-        line = line.strip().lower()
-        if ('total' in line) and ('sub' not in line):  # Exclude subtotal
-            amount_matches = re.findall(r'-?(\d+[.,]\d{2})', line)
-            if amount_matches:
+    # Look for common patterns indicating total amount
+    total_keywords = ['total', 'sum', 'amount', 'due', 'pay', 'balance', 'summe', 'betrag', 'totaal', 'beløp', 'importe', 'monto']
+    
+    # Try to find amount with currency symbol first
+    currency_symbols = {'USD': '$', 'EUR': '€', 'GBP': '£', 'NOK': 'kr', 'SEK': 'kr', 'DKK': 'kr'}
+    symbol = currency_symbols.get(currency, '')
+    
+    # German receipt specific patterns - check these first
+    if original_text:
+        # Look for specific German patterns
+        german_patterns = [
+            r'gesamtbrutto\s+[€]?(\d+[.,]\d+)',
+            r'ec-zahlung\s+[€]?(\d+[.,]\d+)',
+            r'zw-summe\s+[€]?(\d+[.,]\d+)',
+            r'gesamt\s+[€]?(\d+[.,]\d+)'
+        ]
+        
+        for pattern in german_patterns:
+            matches = re.findall(pattern, text_lower)
+            if matches:
                 try:
-                    amount_str = amount_matches[-1].replace(',', '.')  # Use last match as it's likely the final total
-                    amount = abs(float(amount_str))
-                    logger.info(f"Total amount found from total line: {amount}")
+                    amount = float(matches[0].replace(',', '.'))
+                    logger.info(f"Amount found with German pattern: {amount}")
                     return amount
                 except (ValueError, IndexError):
-                    continue
-
-    # Strategy 2: Look for currency-specific patterns
-    if currency:
-        currency_patterns = {
-            'EUR': [r'(\d+[.,]\d{2})\s*€', r'€\s*(\d+[.,]\d{2})'],
-            'USD': [r'(\d+[.,]\d{2})\s*\$', r'\$\s*(\d+[.,]\d{2})'],
-            'GBP': [r'(\d+[.,]\d{2})\s*£', r'£\s*(\d+[.,]\d{2})'],
-            'NOK': [r'(\d+[.,]\d{2})\s*kr', r'kr\s*(\d+[.,]\d{2})'],
-            'CHF': [r'(\d+[.,]\d{2})\s*chf', r'chf\s*(\d+[.,]\d{2})']
-        }
+                    pass
         
-        if currency in currency_patterns:
-            for pattern in currency_patterns[currency]:
-                matches = re.findall(pattern, text_lower, re.IGNORECASE)
-                if matches:
+        # For German receipts, look for the largest € amount
+        if '€' in original_text:
+            # Find all amounts with € symbol
+            amount_matches = re.findall(r'€\s*(\d+[.,]\d+)', original_text.replace(' ', ''))
+            if amount_matches:
+                try:
+                    # Convert all matches to float and find the largest one
+                    amounts = [float(amt.replace(',', '.')) for amt in amount_matches]
+                    largest_amount = max(amounts)
+                    logger.info(f"Largest amount found with € symbol: {largest_amount}")
+                    return largest_amount
+                except (ValueError, IndexError):
+                    pass
+    
+    if symbol:
+        # Look for amounts with the currency symbol
+        amount_pattern = rf'{symbol}\s*(\d+[.,]\d+)'
+        matches = re.findall(amount_pattern, text_lower)
+        if matches:
+            try:
+                amount = float(matches[-1].replace(',', '.'))
+                logger.info(f"Amount found with currency pattern: {amount}")
+                return amount
+            except (ValueError, IndexError):
+                pass
+    
+    # Look for total keywords followed by numbers
+    for line in lines:
+        line_lower = line.lower()
+        for keyword in total_keywords:
+            if keyword in line_lower:
+                # Extract numbers from this line
+                numbers = re.findall(r'(\d+[.,]\d+)', line_lower)
+                if numbers:
                     try:
-                        amount_str = matches[-1].replace(',', '.')  # Use last match
-                        amount = abs(float(amount_str))
-                        logger.info(f"Amount found with currency pattern: {amount}")
+                        # Usually the last number in a total line is the amount
+                        amount = float(numbers[-1].replace(',', '.'))
+                        logger.info(f"Amount found with keyword '{keyword}': {amount}")
                         return amount
                     except (ValueError, IndexError):
                         continue
-
-    # Strategy 3: Fall back to prominent amount
-    # Look for the last amount in the text that has 2 decimal places
-    amount_matches = re.findall(r'-?(\d+[.,]\d{2})', text_lower)
-    if amount_matches:
-        try:
-            amount_str = amount_matches[-1].replace(',', '.')  # Use last match
-            amount = abs(float(amount_str))
-            logger.info(f"Amount found from prominent position: {amount}")
-            return amount
-        except (ValueError, IndexError):
-            pass
+    
+    # If no total keywords found, look for the largest number in the last few lines
+    # (often the total is at the bottom of the receipt)
+    last_lines = lines[-min(10, len(lines)):]
+    all_numbers = []
+    
+    for line in last_lines:
+        numbers = re.findall(r'(\d+[.,]\d+)', line.lower())
+        for num in numbers:
+            try:
+                all_numbers.append(float(num.replace(',', '.')))
+            except (ValueError, IndexError):
+                continue
+    
+    if all_numbers:
+        amount = max(all_numbers)
+        logger.info(f"Amount found as largest number in last lines: {amount}")
+        return amount
     
     return None
 
-def extract_date(text_lower):
+def extract_date(text_lower, original_text=None):
     """
-    Extract date from OCR text.
+    Extract the date from OCR text.
+    
     Args:
         text_lower (str): Lowercase OCR text
+        original_text (str): Original OCR text with case preserved
+        
     Returns:
-        str: Extracted date in ISO format (YYYY-MM-DD) or None
+        str: Extracted date in ISO format (YYYY-MM-DD) or None if not found
     """
-    # Define date patterns for multiple formats
+    # Add specific pattern for German receipts with BEGINN/ENDE
+    if original_text:
+        # Look for BEGINN or ENDE followed by date in format DD/MM/YYYY
+        german_patterns = [
+            r'beginn\s+(\d{1,2})/(\d{1,2})/(\d{2,4})',
+            r'ende\s+(\d{1,2})/(\d{1,2})/(\d{2,4})',
+            r'beginn\s+(\d{1,2})\.(\d{1,2})\.(\d{2,4})',
+            r'ende\s+(\d{1,2})\.(\d{1,2})\.(\d{2,4})'
+        ]
+        
+        for pattern in german_patterns:
+            matches = re.findall(pattern, text_lower)
+            if matches:
+                try:
+                    day, month, year = matches[0]
+                    # Handle 2-digit years
+                    if len(year) == 2:
+                        year = '20' + year
+                    
+                    # Validate date components
+                    day = int(day)
+                    month = int(month)
+                    year = int(year)
+                    
+                    if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
+                        formatted_date = f"{year}-{month:02d}-{day:02d}"
+                        logger.info(f"Found date with German pattern: {formatted_date}")
+                        return formatted_date
+                except (ValueError, IndexError):
+                    pass
+    
+    # Common date patterns (various formats)
     date_patterns = [
-        # German format
-        (r'(\d{1,2})[.-](\d{1,2})[.-](\d{4})', '%d/%m/%Y'),  # DD.MM.YYYY or DD-MM-YYYY
-        # US format
-        (r'(\d{1,2})/(\d{1,2})/(\d{4})', '%m/%d/%Y'),        # MM/DD/YYYY
-        # ISO format
-        (r'(\d{4})-(\d{1,2})-(\d{1,2})', '%Y/%m/%d'),        # YYYY-MM-DD
-        # Short year format
-        (r'(\d{1,2})[.-](\d{1,2})[.-](\d{2})', '%d/%m/%y'),  # DD.MM.YY
-        # Text month formats
-        (r'(\d{1,2})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*(\d{4})', 'text_month'),
-        (r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*(\d{1,2})[,]?\s*(\d{4})', 'month_text')
+        # MM/DD/YYYY or DD/MM/YYYY
+        r'(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})',
+        # YYYY/MM/DD
+        r'(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})',
+        # Month name formats
+        r'(\d{1,2})\s?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s?(\d{2,4})',
+        r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s?(\d{1,2})[\s,]+(\d{2,4})'
     ]
-
-    # Month name mappings for multiple languages
-    month_map = {
-        # English/Common
-        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
-        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12',
-        # German
-        'januar': '01', 'februar': '02', 'märz': '03',
-        'april': '04', 'mai': '05', 'juni': '06',
-        'juli': '07', 'august': '08', 'september': '09',
-        'oktober': '10', 'november': '11', 'dezember': '12',
-        # Norwegian
-        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-        'mai': '05', 'jun': '06', 'jul': '07', 'aug': '08',
-        'sep': '09', 'okt': '10', 'nov': '11', 'des': '12'
-    }
-
-    # Process date
-    for pattern, format_str in date_patterns:
-        matches = list(re.finditer(pattern, text_lower))
-        for match in matches:
+    
+    # Try each pattern
+    for pattern in date_patterns:
+        matches = re.findall(pattern, text_lower)
+        if matches:
             try:
-                if format_str in ('text_month', 'month_text'):
-                    if format_str == 'text_month':
-                        day = match.group(1)
-                        month_name = match.group(2).lower()
-                        year = match.group(3)
-                    else:
-                        month_name = match.group(1).lower()
-                        day = match.group(2)
-                        year = match.group(3)
-                    month = month_map.get(month_name[:3], '01')  # Default to January if not found
-                else:
-                    if format_str == '%d/%m/%Y':
-                        day, month, year = match.groups()
-                    elif format_str == '%Y/%m/%d':
-                        year, month, day = match.groups()
-                    elif format_str == '%m/%d/%Y':
-                        month, day, year = match.groups()
-                    elif format_str == '%d/%m/%y':
-                        day, month, year = match.groups()
-                        year = '20' + year  # Assume 20xx for two-digit years
-                
-                # Convert to integers for validation
-                day_int = int(day)
-                month_int = int(month)
-                year_int = int(year)
-                
-                # Basic validation
-                if (1 <= month_int <= 12 and 
-                    1 <= day_int <= 31 and 
-                    1900 <= year_int <= 2100):  # Basic sanity check for year
+                # Handle different formats
+                if len(matches[0]) == 3:
+                    if len(matches[0][0]) == 4:  # YYYY/MM/DD
+                        year, month, day = matches[0]
+                    elif any(m in matches[0][1].lower() for m in ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']):
+                        # Handle month name formats
+                        month_names = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6, 
+                                      'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}
+                        
+                        if matches[0][0].isdigit():  # DD Month YYYY
+                            day, month_name, year = matches[0]
+                            month = month_names.get(month_name[:3].lower(), 1)
+                        else:  # Month DD, YYYY
+                            month_name, day, year = matches[0]
+                            month = month_names.get(month_name[:3].lower(), 1)
+                    else:  # MM/DD/YYYY or DD/MM/YYYY (assume DD/MM/YYYY for international receipts)
+                        day, month, year = matches[0]
+                        
+                    # Handle 2-digit years
+                    if len(str(year)) == 2:
+                        year = '20' + str(year)
+                        
+                    # Validate date components
+                    day = int(day)
+                    month = int(month) if isinstance(month, str) and month.isdigit() else month
+                    year = int(year)
                     
-                    # Additional validation for days in month
-                    days_in_month = {
-                        1: 31, 2: 29 if year_int % 4 == 0 else 28,  # Simplified leap year check
-                        3: 31, 4: 30, 5: 31, 6: 30,
-                        7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31
-                    }
-                    
-                    if day_int <= days_in_month[month_int]:
-                        # Format as ISO date
-                        iso_date = f"{year_int:04d}-{month_int:02d}-{day_int:02d}"
-                        logger.info(f"Date found: {iso_date}")
-                        return iso_date
-            except (ValueError, IndexError) as e:
-                logger.debug(f"Error parsing date: {str(e)}")
+                    if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
+                        formatted_date = f"{year}-{month:02d}-{day:02d}"
+                        logger.info(f"Found date: {formatted_date}")
+                        return formatted_date
+            except (ValueError, IndexError):
                 continue
+    
+    # Look for date keywords
+    date_keywords = ['date', 'datum', 'fecha', 'dato']
+    for line in text_lower.split('\n'):
+        for keyword in date_keywords:
+            if keyword in line:
+                # Try to extract date from this line
+                for pattern in date_patterns:
+                    matches = re.findall(pattern, line)
+                    if matches:
+                        try:
+                            # Similar processing as above
+                            if len(matches[0]) == 3:
+                                if len(matches[0][0]) == 4:  # YYYY/MM/DD
+                                    year, month, day = matches[0]
+                                else:  # MM/DD/YYYY or DD/MM/YYYY (assume DD/MM/YYYY)
+                                    day, month, year = matches[0]
+                                
+                                # Handle 2-digit years
+                                if len(str(year)) == 2:
+                                    year = '20' + str(year)
+                                    
+                                # Validate date components
+                                day = int(day)
+                                month = int(month)
+                                year = int(year)
+                                
+                                if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
+                                    formatted_date = f"{year}-{month:02d}-{day:02d}"
+                                    logger.info(f"Found date with keyword '{keyword}': {formatted_date}")
+                                    return formatted_date
+                        except (ValueError, IndexError):
+                            continue
     
     return None 
