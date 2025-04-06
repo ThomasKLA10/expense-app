@@ -125,72 +125,133 @@ def process_image(image_path):
             result['total'] = round(result['total'] * 100) / 100
         
         # If date is still not found, try running OCR with different settings
-        # This is specifically for German receipts where the date might be at the bottom
         if result['date'] is None and result['currency'] == 'EUR':
             logger.debug("Date not found, trying bottom crop OCR for German receipt")
             try:
                 from PIL import Image
                 import pytesseract
                 
-                # Open the image and crop the bottom third
+                # Open the image
                 img = Image.open(processed_image_path)
                 width, height = img.size
-                bottom_crop = img.crop((0, height * 2 // 3, width, height))
                 
-                # Save the bottom crop for debugging
-                bottom_crop_path = f"{os.path.splitext(processed_image_path)[0]}_bottom.jpg"
-                bottom_crop.save(bottom_crop_path)
-                logger.debug(f"Saved bottom crop to: {bottom_crop_path}")
-                
-                # Run OCR on just the bottom part with different settings
-                bottom_text = pytesseract.image_to_string(bottom_crop, lang='deu')
-                logger.debug("=== BOTTOM CROP OCR OUTPUT START ===")
-                logger.debug(bottom_text)
-                logger.debug("=== BOTTOM CROP OCR OUTPUT END ===")
-                
-                # Try to find date with various patterns
-                date_patterns = [
-                    r'(?:BEGINN|ENDE)\s+(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})',
-                    r'(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})'  # Any date pattern
+                # Try multiple crops to find the date
+                crops = [
+                    # Bottom quarter
+                    img.crop((0, height * 3 // 4, width, height)),
+                    # Bottom third
+                    img.crop((0, height * 2 // 3, width, height)),
+                    # Bottom half
+                    img.crop((0, height // 2, width, height))
                 ]
                 
-                for pattern in date_patterns:
-                    date_match = re.search(pattern, bottom_text, re.IGNORECASE)
-                    if date_match:
-                        logger.debug(f"Found date match with pattern: {pattern}")
-                        if pattern.startswith('(?:BEGINN|ENDE)'):
-                            day, month, year = date_match.groups()
-                        else:
-                            day, month, year = date_match.groups()
+                for i, crop in enumerate(crops):
+                    crop_path = f"{os.path.splitext(processed_image_path)[0]}_bottom_{i}.jpg"
+                    crop.save(crop_path)
+                    logger.debug(f"Saved crop {i} to: {crop_path}")
+                    
+                    # Try different OCR configurations
+                    for config in ['--psm 6', '--psm 11', '--psm 3']:
+                        # Run OCR on the crop with German language and different configs
+                        crop_text = pytesseract.image_to_string(crop, lang='deu', config=config)
+                        logger.debug(f"=== CROP {i} OCR OUTPUT (config: {config}) START ===")
+                        logger.debug(crop_text)
+                        logger.debug(f"=== CROP {i} OCR OUTPUT END ===")
                         
-                        # Handle 2-digit years
-                        if len(year) == 2:
-                            year = '20' + year
+                        # Look for BEGINN/ENDE pattern first (most reliable)
+                        beginn_match = re.search(r'BEGINN\s+(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})', crop_text, re.IGNORECASE)
+                        if beginn_match:
+                            day, month, year = beginn_match.groups()
+                            logger.debug(f"Found BEGINN date: {day}/{month}/{year}")
+                            
+                            # Handle 2-digit years
+                            if len(year) == 2:
+                                year = '20' + year
+                            
+                            try:
+                                day = int(day)
+                                month = int(month)
+                                year = int(year)
+                                
+                                if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
+                                    formatted_date = f"{year}-{month:02d}-{day:02d}"
+                                    logger.info(f"Found date with BEGINN pattern: {formatted_date}")
+                                    result['date'] = formatted_date
+                                    break
+                            except ValueError:
+                                continue
                         
-                        # Validate date components
-                        day = int(day)
-                        month = int(month)
-                        year = int(year)
+                        # If no BEGINN pattern, try standard date patterns
+                        if not result['date']:
+                            date_patterns = [
+                                r'(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})',  # Standard date pattern
+                                r'[^\d](\d{2})[/.-](\d{4})\s+\d{1,2}:\d{1,2}'  # Pattern like "06/2023 14:17"
+                            ]
+                            
+                            for pattern in date_patterns:
+                                date_match = re.search(pattern, crop_text, re.IGNORECASE)
+                                if date_match:
+                                    logger.debug(f"Found date match with pattern: {pattern}")
+                                    
+                                    # Handle different pattern formats
+                                    if pattern.endswith('\d{1,2}:\d{1,2}'):
+                                        # Format: "06/2023 14:17" - month/year format
+                                        month, year = date_match.groups()
+                                        
+                                        # For this specific format, try to find BEGINN in the entire text
+                                        # This handles cases where the OCR might split the text
+                                        full_text = pytesseract.image_to_string(img, lang='deu')
+                                        beginn_day_match = re.search(r'BEGINN\s+(\d{1,2})[/.-]', full_text)
+                                        
+                                        if beginn_day_match:
+                                            day = beginn_day_match.group(1)
+                                            logger.debug(f"Found day from BEGINN pattern: {day}")
+                                        else:
+                                            # Look for any numbers that could be days
+                                            day_candidates = re.findall(r'\b(\d{1,2})\b', full_text)
+                                            valid_days = [int(d) for d in day_candidates if 1 <= int(d) <= 31]
+                                            
+                                            if valid_days:
+                                                # Use the most common day number found
+                                                from collections import Counter
+                                                day_counts = Counter(valid_days)
+                                                day = day_counts.most_common(1)[0][0]
+                                                logger.debug(f"Using most common day number found: {day}")
+                                            else:
+                                                # Last resort: use current day
+                                                from datetime import datetime
+                                                day = datetime.now().day
+                                                logger.debug(f"No day found, using current day: {day}")
+                                    else:
+                                        # Standard format with day, month, year
+                                        day, month, year = date_match.groups()
+                                    
+                                    # Handle 2-digit years
+                                    if len(year) == 2:
+                                        year = '20' + year
+                                    
+                                    # Validate date components
+                                    try:
+                                        day = int(day)
+                                        month = int(month)
+                                        year = int(year)
+                                        
+                                        if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
+                                            formatted_date = f"{year}-{month:02d}-{day:02d}"
+                                            logger.info(f"Found date in crop {i}: {formatted_date}")
+                                            result['date'] = formatted_date
+                                            break
+                                    except ValueError:
+                                        continue
                         
-                        if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
-                            formatted_date = f"{year}-{month:02d}-{day:02d}"
-                            logger.info(f"Found date in bottom crop: {formatted_date}")
-                            result['date'] = formatted_date
+                        # If we found a date, no need to try other configs
+                        if result['date']:
                             break
-                
-                # If still no date, try hardcoding for this specific receipt
-                if result['date'] is None and "BONNGASSE" in original_text:
-                    logger.debug("This appears to be a Textildruck-Bonn receipt, using filename date")
-                    # Extract date from filename if it contains a date pattern (like PXL_20230612)
-                    filename_match = re.search(r'_(\d{8})_', os.path.basename(image_path))
-                    if filename_match:
-                        date_str = filename_match.group(1)
-                        year = date_str[0:4]
-                        month = date_str[4:6]
-                        day = date_str[6:8]
-                        formatted_date = f"{year}-{month}-{day}"
-                        logger.info(f"Extracted date from filename: {formatted_date}")
-                        result['date'] = formatted_date
+                    
+                    # If we found a date, no need to check other crops
+                    if result['date']:
+                        break
+            
             except Exception as e:
                 logger.warning(f"Error in secondary date extraction: {str(e)}")
         
