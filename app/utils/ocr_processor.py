@@ -127,6 +127,20 @@ def process_image(image_path):
                 result['total'] = german_amount
                 logger.info(f"Found German amount format: {german_amount}")
         
+        # Try to find totals using keywords
+        potential_totals = extract_total_from_keywords(original_text)
+        
+        # If we found potential totals
+        if potential_totals:
+            # Use the most reasonable amount (not too large, not too small)
+            for amount, match_text in potential_totals:
+                if 1 <= amount <= 500:  # Reasonable range for most receipts
+                    # If current total is None or seems unreasonable, replace it
+                    if result['total'] is None or result['total'] > 500 or abs(result['total'] - amount) > 50:
+                        logger.info(f"Replacing amount {result['total']} with {amount} from '{match_text}'")
+                        result['total'] = amount
+                        break
+        
         # Ensure amount is always positive for expense tracking
         if result['total'] is not None:
             result['total'] = abs(result['total'])
@@ -815,3 +829,31 @@ def extract_german_amount(text):
             pass
     
     return None 
+
+def extract_total_from_keywords(text):
+    """Extract total amount using various keywords that might indicate totals"""
+    # List of keywords that often precede total amounts
+    total_keywords = [
+        'total', 'summe', 'betrag', 'amount', 'sum', 'zu zahlen', 
+        'gesamtbetrag', 'endbetrag', 'kredit', 'zahlung', 'zw-sunme'
+    ]
+    
+    # Create a pattern that looks for any of these keywords followed by numbers
+    pattern = r'(?:' + '|'.join(total_keywords) + r')\s*(?:\d+\s*)?[#*€$£]?\s*(\d+)[,.\s-]+(\d+)'
+    matches = re.finditer(pattern, text.lower())
+    
+    amounts = []
+    for match in matches:
+        try:
+            euros, cents = match.groups()
+            amount = float(euros) + float(cents) / 100
+            amounts.append((amount, match.group(0)))
+            logger.debug(f"Found potential amount: {amount} from '{match.group(0)}'")
+        except (ValueError, IndexError):
+            continue
+    
+    # Sort by amount (usually the largest is the total)
+    amounts.sort(reverse=True)
+    
+    # Return the amounts found
+    return amounts 
