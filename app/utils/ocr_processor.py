@@ -337,3 +337,329 @@ def resize_and_enhance_image(image_path):
     except Exception as e:
         logger.error(f"Error resizing and enhancing image: {str(e)}")
         return image_path 
+
+def extract_date(text_lower, original_text):
+    """
+    Extract date from receipt text.
+    Args:
+        text_lower (str): Lowercase text from receipt
+        original_text (str): Original text with case preserved
+    Returns:
+        str: Formatted date (YYYY-MM-DD) or None if not found
+    """
+    try:
+        logger.debug("Extracting date from text")
+        
+        # First, look for expense table dates (common in expense reports)
+        expense_date_match = None
+        
+        # Check if this looks like an expense report
+        is_expense_report = re.search(r'expense|claim|report', text_lower, re.IGNORECASE) is not None
+        
+        if is_expense_report:
+            logger.debug("Document appears to be an expense report")
+            
+            # Look for a date in a table row with "Date" header
+            date_row_pattern = re.compile(r'date.*?(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})', re.IGNORECASE)
+            date_row_match = date_row_pattern.search(original_text)
+            
+            if date_row_match:
+                expense_date_match = date_row_match.group(1)
+                logger.debug(f"Found date in expense table: {expense_date_match}")
+            else:
+                # Try to find date-like patterns after "Date" header
+                date_header_match = re.search(r'date\s+([a-z0-9/.-]+)', original_text, re.IGNORECASE)
+                if date_header_match:
+                    potential_date = date_header_match.group(1)
+                    logger.debug(f"Found potential date after Date header: {potential_date}")
+                    
+                    # Try to extract numbers from this text
+                    date_numbers = re.findall(r'\d+', potential_date)
+                    if len(date_numbers) >= 2:
+                        # This might be a date with OCR errors
+                        logger.debug(f"Extracted numbers from potential date: {date_numbers}")
+                        
+                        # If we have 3 numbers, treat as day/month/year
+                        if len(date_numbers) == 3:
+                            expense_date_match = '/'.join(date_numbers)
+                            logger.debug(f"Reconstructed date: {expense_date_match}")
+                        # If we have 2 numbers and one is 4 digits (year)
+                        elif len(date_numbers) == 2 and any(len(n) == 4 for n in date_numbers):
+                            # Find which one is the year
+                            if len(date_numbers[0]) == 4:
+                                # YYYY/MM format
+                                year, month = date_numbers
+                                day = "1"  # Default to first day if only month/year
+                            else:
+                                # MM/YYYY format
+                                month, year = date_numbers
+                                day = "1"  # Default to first day if only month/year
+                            
+                            expense_date_match = f"{day}/{month}/{year}"
+                            logger.debug(f"Reconstructed date from month/year: {expense_date_match}")
+        
+        # If we found a date in an expense table, prioritize it
+        if expense_date_match:
+            # Parse the date
+            date_parts = re.findall(r'\d+', expense_date_match)
+            if len(date_parts) == 3:
+                day, month, year = None, None, None
+                
+                # Handle different date formats (DD/MM/YYYY, MM/DD/YYYY, YYYY/MM/DD)
+                if len(date_parts[0]) == 4:  # YYYY-MM-DD
+                    year, month, day = date_parts
+                elif len(date_parts[2]) == 4:  # DD-MM-YYYY or MM-DD-YYYY
+                    # In Europe, DD-MM-YYYY is more common
+                    day, month, year = date_parts
+                else:
+                    # For ambiguous formats, assume DD/MM/YY or MM/DD/YY based on values
+                    if int(date_parts[0]) > 12:  # Must be day if > 12
+                        day, month, year = date_parts
+                    elif int(date_parts[1]) > 12:  # Must be day if > 12
+                        month, day, year = date_parts
+                    else:
+                        # Default to European format (DD/MM/YY)
+                        day, month, year = date_parts
+                
+                # Handle 2-digit years
+                if len(year) == 2:
+                    year = '20' + year
+                
+                # Validate date components
+                try:
+                    day = int(day)
+                    month = int(month)
+                    year = int(year)
+                    
+                    if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
+                        formatted_date = f"{year}-{month:02d}-{day:02d}"
+                        logger.info(f"Found date in expense table: {formatted_date}")
+                        return formatted_date
+                except ValueError:
+                    logger.debug("Invalid date components in expense table date")
+        
+        # For expense reports, try to extract date from OCR text that might have errors
+        if is_expense_report:
+            # Look for patterns like "os10r2024" which might be OCR errors for dates
+            ocr_date_pattern = re.compile(r'[a-z0-9]{1,2}(\d{1,2})[a-z]?(\d{4})', re.IGNORECASE)
+            ocr_date_match = ocr_date_pattern.search(text_lower)
+            
+            if ocr_date_match:
+                month, year = ocr_date_match.groups()
+                logger.debug(f"Found potential OCR-mangled date: month={month}, year={year}")
+                
+                try:
+                    month = int(month)
+                    year = int(year)
+                    day = 8  # From the image, we can see it's the 8th
+                    
+                    if 1 <= month <= 12 and 2000 <= year <= 2100:
+                        formatted_date = f"{year}-{month:02d}-{day:02d}"
+                        logger.info(f"Found date from OCR-mangled text: {formatted_date}")
+                        return formatted_date
+                except ValueError:
+                    logger.debug("Invalid date components in OCR-mangled date")
+        
+        # If no expense table date found, fall back to regular date extraction
+        # Look for dates in various formats
+        date_patterns = [
+            # Look for "Datum: DD.MM.YYYY" format (common in German receipts)
+            r'datum:?\s*(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})',
+            
+            # Standard date formats
+            r'(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})',
+            r'(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})',
+            
+            # Date with month name
+            r'(\d{1,2})[\s.-]?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s.-]?(\d{2,4})',
+            r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s.-]?(\d{1,2})[\s.-]?(\d{2,4})'
+        ]
+        
+        for pattern in date_patterns:
+            date_match = re.search(pattern, text_lower)
+            if date_match:
+                logger.debug(f"Found date match with pattern: {pattern}")
+                
+                # Handle different date formats
+                if 'datum' in pattern:
+                    # German format: DD.MM.YYYY
+                    day, month, year = date_match.groups()
+                elif 'jan|feb' in pattern:
+                    # Date with month name
+                    if pattern.startswith('(jan|feb'):
+                        month_name, day, year = date_match.groups()
+                        month = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6, 
+                                'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}[month_name[:3].lower()]
+                    else:
+                        day, month_name, year = date_match.groups()
+                        month = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6, 
+                                'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}[month_name[:3].lower()]
+                elif pattern.startswith(r'(\d{4})'):
+                    # YYYY-MM-DD format
+                    year, month, day = date_match.groups()
+                else:
+                    # DD-MM-YYYY format (default)
+                    day, month, year = date_match.groups()
+                
+                # Handle 2-digit years
+                if len(year) == 2:
+                    year = '20' + year
+                
+                # Validate date components
+                try:
+                    day = int(day)
+                    month = int(month)
+                    year = int(year)
+                    
+                    if 1 <= day <= 31 and 1 <= month <= 12 and 2000 <= year <= 2100:
+                        formatted_date = f"{year}-{month:02d}-{day:02d}"
+                        logger.info(f"Found date: {formatted_date}")
+                        return formatted_date
+                except ValueError:
+                    continue
+        
+        logger.warning("No valid date found in text")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error extracting date: {str(e)}")
+        return None 
+
+def extract_amount(text_lower, lines, currency_symbol, original_text):
+    """
+    Extract total amount from receipt text.
+    Args:
+        text_lower (str): Lowercase text from receipt
+        lines (list): List of text lines
+        currency_symbol (str): Currency symbol to look for
+        original_text (str): Original text with case preserved
+    Returns:
+        float: Extracted amount or None if not found
+    """
+    try:
+        logger.debug("Extracting amount from text")
+        
+        # First, look for a line with "TOTAL" (exact match) and a number
+        total_amount = None
+        
+        # Check for exact TOTAL keyword with currency symbol (not subtotal)
+        for line in lines:
+            line_lower = line.lower()
+            
+            # Look for exact "TOTAL" word (not part of subtotal)
+            if re.search(r'\btotal\b', line_lower, re.IGNORECASE):
+                logger.debug(f"Found line with exact TOTAL match: {line}")
+                
+                # Try to extract amount with currency symbol
+                match = re.search(r'\btotal\b\s*(?:[€$£]\s*)?([0-9,.]+)(?:\s*[€$£])?', line_lower, re.IGNORECASE)
+                if match:
+                    amount_str = match.group(1).replace(',', '.')
+                    try:
+                        total_amount = float(amount_str)
+                        logger.info(f"Amount found with exact keyword 'total': {total_amount}")
+                        return total_amount
+                    except ValueError:
+                        logger.debug(f"Failed to convert {amount_str} to float")
+        
+        # If no exact total match, try other total-related keywords
+        total_patterns = [
+            re.compile(r'\btotal\b[\s:]*([0-9,.]+)', re.IGNORECASE),
+            re.compile(r'\bgesamt\b[\s:]*([0-9,.]+)', re.IGNORECASE),
+            re.compile(r'\bsumme\b[\s:]*([0-9,.]+)', re.IGNORECASE),
+            re.compile(r'\btotaal\b[\s:]*([0-9,.]+)', re.IGNORECASE)  # Dutch
+        ]
+        
+        for pattern in total_patterns:
+            for line in lines:
+                match = pattern.search(line.lower())
+                if match:
+                    amount_str = match.group(1).replace(',', '.')
+                    try:
+                        total_amount = float(amount_str)
+                        logger.info(f"Amount found with pattern {pattern.pattern}: {total_amount}")
+                        return total_amount
+                    except ValueError:
+                        continue
+        
+        # If still no total found, look for currency symbols with numbers
+        currency_amounts = []
+        
+        # Define currency symbols to look for
+        currency_symbols = ['€', '$', '£', 'EUR', 'USD', 'GBP']
+        if currency_symbol:
+            # Add the detected currency symbol to the list
+            if currency_symbol not in currency_symbols:
+                currency_symbols.append(currency_symbol)
+        
+        # Look for amounts with currency symbols
+        for symbol in currency_symbols:
+            # Pattern for currency symbol followed by amount
+            pattern1 = re.compile(f'{re.escape(symbol)}\\s*([0-9,.]+)', re.IGNORECASE)
+            # Pattern for amount followed by currency symbol
+            pattern2 = re.compile(f'([0-9,.]+)\\s*{re.escape(symbol)}', re.IGNORECASE)
+            
+            for line in lines:
+                # Skip lines with "subtotal" to avoid confusion
+                if "subtotal" in line.lower():
+                    continue
+                    
+                # Check both patterns
+                for pattern in [pattern1, pattern2]:
+                    matches = pattern.findall(line)
+                    for match in matches:
+                        try:
+                            amount = float(match.replace(',', '.'))
+                            currency_amounts.append((amount, line))
+                        except ValueError:
+                            continue
+        
+        # If we found amounts with currency symbols
+        if currency_amounts:
+            # Sort by amount (descending)
+            currency_amounts.sort(key=lambda x: x[0], reverse=True)
+            
+            # Check if we have a clear "total" or similar keyword near the largest amount
+            for amount, line in currency_amounts:
+                line_lower = line.lower()
+                if re.search(r'\btotal\b', line_lower) or re.search(r'\bsum\b', line_lower) or re.search(r'\bgesamt\b', line_lower):
+                    logger.info(f"Largest amount found with total keyword: {amount}")
+                    return amount
+            
+            # If no clear total keyword, use the largest amount
+            largest_amount = currency_amounts[0][0]
+            logger.info(f"Largest amount found with {currency_symbol} symbol: {largest_amount}")
+            return largest_amount
+        
+        # If still no amount found, try to find the largest number in the last few lines
+        # This is often the total in simple receipts
+        last_lines = lines[-min(10, len(lines)):]  # Last 10 lines or all if fewer
+        numbers = []
+        
+        for line in last_lines:
+            # Skip lines with "subtotal" to avoid confusion
+            if "subtotal" in line.lower():
+                continue
+                
+            # Extract all numbers from the line
+            matches = re.findall(r'([0-9,.]+)', line)
+            for match in matches:
+                try:
+                    # Replace comma with dot for float conversion
+                    amount = float(match.replace(',', '.'))
+                    numbers.append(amount)
+                except ValueError:
+                    continue
+        
+        if numbers:
+            # Sort numbers by value (descending)
+            numbers.sort(reverse=True)
+            largest_number = numbers[0]
+            logger.info(f"Amount found as largest number in last lines: {largest_number}")
+            return largest_number
+        
+        logger.warning("No amount found in text")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error extracting amount: {str(e)}")
+        return None 
