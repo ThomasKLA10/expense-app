@@ -6,18 +6,20 @@ A comprehensive expense tracking and receipt management application built with F
 - [Quick Start](#quick-start)
 - [Features](#features)
 - [Technical Stack](#technical-stack)
-- [Setup and Installation](#setup-and-installation)
 - [Project Structure](#project-structure)
+- [Setup and Installation](#setup-and-installation)
+- [Configuration](#configuration)
+  - [Google OAuth Configuration](#google-oauth-configuration)
+  - [Email Configuration](#email-configuration)
+- [Development Tools](#development-tools)
+  - [Making Yourself an Admin](#making-yourself-an-admin)
 - [API Documentation](#api-documentation)
 - [Testing](#testing)
-- [Data Protection (Datenschutz)](#data-protection-datenschutz)
-- [File Management System](#file-management-system)
-- [Google OAuth Configuration](#google-oauth-configuration)
-- [Development Tools](#development-tools)
-- [Making Yourself an Admin](#making-yourself-an-admin)
 - [Deployment](#deployment)
-- [Email Configuration](#email-configuration)
-- [Database Backup and Restore](#database-backup-and-restore)
+- [Maintenance](#maintenance)
+  - [Data Protection (Datenschutz)](#data-protection-datenschutz)
+  - [File Management System](#file-management-system)
+  - [Database Backup and Restore](#database-backup-and-restore)
 
 ## Quick Start
 
@@ -154,29 +156,86 @@ If you prefer not to use Docker:
 
 ## Project Structure
 
-- `app/`: Main application package
-  - `static/`: Static files (CSS, JS, images)
-  - `templates/`: HTML templates
-  - `uploads/`: User uploaded files
-  - `__init__.py`: Application factory
-  - `models.py`: Database models
-  - `routes.py`: Application routes
-  - `ocr.py`: OCR processing logic
-  - `pdf_generator.py`: PDF generation
-- `config/`: Configuration files
-  - `settings.py`: Application configuration
-  - `.env.example`: Example environment variables
-- `data/`: Data storage
-  - `db/`: Database schemas and backups
-- `docker/`: Docker configuration
-  - `Dockerfile`: Container definition
-  - `docker-compose.yml`: Multi-container setup
-- `migrations/`: Database migrations
-- `scripts/`: Utility scripts
-  - `run_tests.sh`: Test runner
-  - `file-management.sh`: File management utilities
-  - `setup-cron.sh`: Cron job setup
-- `tests/`: Unit tests
+```
+expense-app/
+├── app/                      # Main application package
+│   ├── archive/              # Archived receipts storage
+│   ├── routes/               # Application route modules
+│   │   ├── admin_routes.py   # Admin panel routes
+│   │   ├── main_routes.py    # Main application routes
+│   │   ├── ocr_routes.py     # OCR processing routes
+│   │   ├── receipt_routes.py # Receipt management routes
+│   │   └── user_routes.py    # User-related routes
+│   ├── static/               # Static files (CSS, JS, images)
+│   │   ├── css/              # Stylesheets
+│   │   ├── img/              # Images
+│   │   └── js/               # JavaScript files
+│   ├── templates/            # HTML templates
+│   │   ├── admin/            # Admin panel templates
+│   │   ├── emails/           # Email templates
+│   │   ├── partials/         # Reusable template components
+│   │   └── base.html         # Base template layout
+│   ├── uploads/              # User uploaded files
+│   ├── utils/                # Utility functions
+│   │   ├── email.py          # Email functionality
+│   │   ├── file_management.py # File management utilities
+│   │   ├── ocr_extractors.py # OCR data extraction
+│   │   ├── ocr_processor.py  # OCR processing
+│   │   └── patches.py        # Dependency patches
+│   ├── __init__.py           # Application factory
+│   ├── auth.py               # Authentication logic
+│   ├── extensions.py         # Flask extensions
+│   ├── models.py             # Database models
+│   ├── oauth.py              # OAuth implementation
+│   ├── ocr.py                # OCR main module
+│   ├── pdf_generator.py      # PDF generation
+│   └── swagger.py            # API documentation
+├── config/                   # Configuration files
+│   ├── __init__.py           # Package initialization
+│   └── settings.py           # Application configuration
+├── data/                     # Data storage
+│   ├── db/                   # Database schemas and backups
+│   └── postgres/             # PostgreSQL data files
+├── docker/                   # Docker configuration
+│   ├── Dockerfile            # Container definition
+│   └── docker-compose.yml    # Multi-container setup
+├── logs/                     # Application logs
+├── migrations/               # Database migrations
+│   └── versions/             # Migration versions
+├── scripts/                  # Utility scripts
+│   ├── db_backup.sh          # Database backup script
+│   ├── db_restore.sh         # Database restore script
+│   ├── file-management.sh    # File management utilities
+│   ├── run_tests.sh          # Test runner
+│   └── setup-cron.sh         # Cron job setup
+├── temp/                     # Temporary files storage
+├── tests/                    # Unit tests
+├── .env                      # Environment variables (not in version control)
+├── docker-compose.yml        # Symlink to docker/docker-compose.yml
+├── Dockerfile                # Symlink to docker/Dockerfile
+├── requirements.txt          # Python dependencies
+└── run.py                    # Application entry point
+```
+
+### Key Components
+
+- **app/**: Core application code
+  - **routes/**: Organized route handlers by function
+  - **utils/**: Helper functions for OCR, email, and file management
+  - **templates/**: Jinja2 HTML templates
+  - **static/**: Frontend assets
+
+- **config/**: Configuration and environment settings
+
+- **docker/**: Container definitions for development and deployment
+
+- **scripts/**: Maintenance, backup, and utility scripts
+
+- **migrations/**: Database schema version control
+
+- **temp/**: Storage for temporary files like generated PDFs
+
+This structure follows the Flask application factory pattern with clear separation of concerns.
 
 ## API Documentation
 
@@ -244,6 +303,240 @@ Tests cover:
 - OCR functionality
 - PDF generation
 - Authentication flows
+
+## Configuration
+
+### Google OAuth Configuration
+
+To enable Google authentication, you need to set up OAuth credentials in the Google Cloud Console:
+
+### 1. Create a Google Cloud Project
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Click on the project dropdown at the top of the page
+3. Click "New Project"
+4. Enter a project name (e.g., "BB Expense App")
+5. Click "Create"
+
+### 2. Enable the Google OAuth API
+
+1. Select your project from the dashboard
+2. Navigate to "APIs & Services" > "Library" from the left sidebar
+3. Search for "Google OAuth2 API" or "Google Identity"
+4. Click on the API and click "Enable"
+
+### 3. Configure the OAuth Consent Screen
+
+1. Go to "APIs & Services" > "OAuth consent screen"
+2. Select "External" as the user type (unless you have Google Workspace)
+3. Click "Create"
+4. Fill in the required information:
+   - App name: "BB Expense App"
+   - User support email: Your email address
+   - Developer contact information: Your email address
+5. Click "Save and Continue"
+6. Under "Scopes", add the following scopes:
+   - `email`
+   - `profile`
+   - `openid`
+7. Click "Save and Continue"
+8. Add test users if needed (your email and any testers)
+9. Click "Save and Continue"
+10. Review your settings and click "Back to Dashboard"
+
+### 4. Create OAuth Client ID
+
+1. Go to "APIs & Services" > "Credentials"
+2. Click "Create Credentials" and select "OAuth client ID"
+3. Set the application type to "Web application"
+4. Name: "BB Expense App Web Client"
+5. Add authorized JavaScript origins:
+   - For local development: `http://localhost:5000`
+   - For production: `https://your-domain.com`
+6. Add authorized redirect URIs:
+   - For local development: `http://localhost:5000/auth/google/callback`
+   - For production: `https://your-domain.com/auth/google/callback`
+7. Click "Create"
+8. Note your Client ID and Client Secret (you'll need these for your app)
+
+### 5. Configure Your Application
+
+1. Add the Client ID and Client Secret to your `.env` file:
+   ```
+   GOOGLE_CLIENT_ID=your-client-id
+   GOOGLE_CLIENT_SECRET=your-client-secret
+   ```
+
+2. If using Docker, update your `docker-compose.yml` file:
+   ```yaml
+   services:
+     web:
+       # ... other configuration ...
+       environment:
+         - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+         - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+   ```
+
+### 6. Restricting Access to Specific Domains
+
+The application is configured to only allow users with email addresses from specific domains to log in. This is controlled by the `ALLOWED_EMAIL_DOMAINS` setting.
+
+To modify the allowed domains:
+1. Edit the `ALLOWED_EMAIL_DOMAINS` variable in your `.env` file:
+   ```
+   ALLOWED_EMAIL_DOMAINS=bakkenbaeck.no
+   ```
+2. Multiple domains can be specified by separating them with commas if needed
+
+### 7. Moving to Production
+
+When moving to production:
+
+1. Update the authorized origins and redirect URIs in the Google Cloud Console
+2. If needed, publish your OAuth consent screen:
+   - Go to "OAuth consent screen"
+   - Click "Publish App" to move from testing to production
+   - Note: This may require verification if you're allowing access to users outside your organization
+
+### 8. Troubleshooting
+
+If you encounter authentication issues:
+
+- Verify that your redirect URIs exactly match what's configured in the Google Cloud Console
+- Check that your Client ID and Client Secret are correctly set in your environment
+- Ensure the OAuth API is enabled for your project
+- Verify that the user's email domain is in your `ALLOWED_EMAIL_DOMAINS` list
+- Check the application logs for specific error messages
+
+### Email Configuration
+
+When deploying to production, you'll need to update the email configuration to use your company's SMTP server. Follow these steps:
+
+### 1. Update Environment Variables
+
+In your production environment, set the following environment variables:
+
+```
+MAIL_SERVER=your-smtp-server.company.com
+MAIL_PORT=587  # Common ports are 587 (TLS) or 465 (SSL)
+MAIL_USE_TLS=True  # Use False if using SSL
+MAIL_USE_SSL=False  # Use True if using SSL instead of TLS
+MAIL_USERNAME=your-email@company.com
+MAIL_PASSWORD=your-email-password
+MAIL_DEFAULT_SENDER=your-email@company.com
+```
+
+### 2. Update Docker Compose (if using Docker)
+
+If you're using Docker in production, update your `docker-compose.yml` file:
+
+```yaml
+services:
+  web:
+    # ... other configuration ...
+    environment:
+      - MAIL_SERVER=your-smtp-server.company.com
+      - MAIL_PORT=587
+      - MAIL_USE_TLS=True
+      - MAIL_USE_SSL=False
+      - MAIL_USERNAME=your-email@company.com
+      - MAIL_PASSWORD=your-email-password
+      - MAIL_DEFAULT_SENDER=your-email@company.com
+```
+
+### 3. Common SMTP Configurations
+
+#### Gmail
+```
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-gmail@gmail.com
+MAIL_PASSWORD=your-app-password  # Use an App Password, not your regular password
+```
+
+#### Microsoft 365 / Office 365
+```
+MAIL_SERVER=smtp.office365.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-email@company.com
+MAIL_PASSWORD=your-password
+```
+
+#### Amazon SES
+```
+MAIL_SERVER=email-smtp.us-east-1.amazonaws.com  # Region may vary
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=YOUR_SES_ACCESS_KEY
+MAIL_PASSWORD=YOUR_SES_SECRET_KEY
+```
+
+### 4. Testing Email Configuration
+
+After updating your configuration, you can test if emails are being sent correctly by:
+
+1. Submitting a new receipt
+2. Checking if reviewers receive notification emails
+3. Approving/rejecting a receipt and checking if the user receives a status notification
+
+### 5. Troubleshooting
+
+If emails are not being sent:
+
+- Check your SMTP server settings
+- Verify that your email account credentials are correct
+- Ensure your email provider allows SMTP access (some providers require enabling this feature)
+- Check if your email provider requires using an app-specific password
+- Review application logs for any email-related errors
+
+## Development Tools
+
+### Creating a Test User
+
+The application includes a utility endpoint to create a test user for demonstration purposes:
+
+1. Log in as an admin user
+2. Navigate to: `http://localhost:5000/create-test-user`
+3. This will create a test user with the following credentials:
+   - Email: `test@bakkenbaeck.no`
+   - Name: `Test User`
+   - Admin: No
+   - Reviewer: No
+4. You will be redirected to the user management page
+
+Note: This endpoint is protected by the `@admin_required` decorator, so you must be logged in as an admin to use it.
+
+## Making Yourself an Admin
+
+If you need admin access, you can grant it to yourself using the Flask shell:
+
+```bash
+# Enter flask shell in Docker
+docker exec -it expense-app-web-1 flask shell
+
+# Then paste these commands:
+from app.models import User, db
+user = User.query.filter_by(email='your@email.com').first()
+user.is_admin = True
+db.session.commit()
+exit()
+```
+
+Just replace `your@email.com` with your email address. After running these commands, you'll have admin privileges in the application.
+
+## Deployment
+
+For production deployment:
+
+1. Update the `.env` file with production settings
+2. Set `FLASK_ENV=production`
+3. Configure a production WSGI server (Gunicorn, uWSGI)
+4. Set up a reverse proxy (Nginx, Apache)
+
+
+## Maintenance
 
 ## Data Protection (Datenschutz)
 
@@ -385,236 +678,6 @@ When deploying the file management system to production:
    ```
    
    Then check the logs directory for the generated log file.
-
-## Google OAuth Configuration
-
-To enable Google authentication, you need to set up OAuth credentials in the Google Cloud Console:
-
-### 1. Create a Google Cloud Project
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Click on the project dropdown at the top of the page
-3. Click "New Project"
-4. Enter a project name (e.g., "BB Expense App")
-5. Click "Create"
-
-### 2. Enable the Google OAuth API
-
-1. Select your project from the dashboard
-2. Navigate to "APIs & Services" > "Library" from the left sidebar
-3. Search for "Google OAuth2 API" or "Google Identity"
-4. Click on the API and click "Enable"
-
-### 3. Configure the OAuth Consent Screen
-
-1. Go to "APIs & Services" > "OAuth consent screen"
-2. Select "External" as the user type (unless you have Google Workspace)
-3. Click "Create"
-4. Fill in the required information:
-   - App name: "BB Expense App"
-   - User support email: Your email address
-   - Developer contact information: Your email address
-5. Click "Save and Continue"
-6. Under "Scopes", add the following scopes:
-   - `email`
-   - `profile`
-   - `openid`
-7. Click "Save and Continue"
-8. Add test users if needed (your email and any testers)
-9. Click "Save and Continue"
-10. Review your settings and click "Back to Dashboard"
-
-### 4. Create OAuth Client ID
-
-1. Go to "APIs & Services" > "Credentials"
-2. Click "Create Credentials" and select "OAuth client ID"
-3. Set the application type to "Web application"
-4. Name: "BB Expense App Web Client"
-5. Add authorized JavaScript origins:
-   - For local development: `http://localhost:5000`
-   - For production: `https://your-domain.com`
-6. Add authorized redirect URIs:
-   - For local development: `http://localhost:5000/auth/google/callback`
-   - For production: `https://your-domain.com/auth/google/callback`
-7. Click "Create"
-8. Note your Client ID and Client Secret (you'll need these for your app)
-
-### 5. Configure Your Application
-
-1. Add the Client ID and Client Secret to your `.env` file:
-   ```
-   GOOGLE_CLIENT_ID=your-client-id
-   GOOGLE_CLIENT_SECRET=your-client-secret
-   ```
-
-2. If using Docker, update your `docker-compose.yml` file:
-   ```yaml
-   services:
-     web:
-       # ... other configuration ...
-       environment:
-         - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-         - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-   ```
-
-### 6. Restricting Access to Specific Domains
-
-The application is configured to only allow users with email addresses from specific domains to log in. This is controlled by the `ALLOWED_EMAIL_DOMAINS` setting.
-
-To modify the allowed domains:
-1. Edit the `ALLOWED_EMAIL_DOMAINS` variable in your `.env` file:
-   ```
-   ALLOWED_EMAIL_DOMAINS=bakkenbaeck.no
-   ```
-2. Multiple domains can be specified by separating them with commas if needed
-
-### 7. Moving to Production
-
-When moving to production:
-
-1. Update the authorized origins and redirect URIs in the Google Cloud Console
-2. If needed, publish your OAuth consent screen:
-   - Go to "OAuth consent screen"
-   - Click "Publish App" to move from testing to production
-   - Note: This may require verification if you're allowing access to users outside your organization
-
-### 8. Troubleshooting
-
-If you encounter authentication issues:
-
-- Verify that your redirect URIs exactly match what's configured in the Google Cloud Console
-- Check that your Client ID and Client Secret are correctly set in your environment
-- Ensure the OAuth API is enabled for your project
-- Verify that the user's email domain is in your `ALLOWED_EMAIL_DOMAINS` list
-- Check the application logs for specific error messages
-
-## Development Tools
-
-### Creating a Test User
-
-The application includes a utility endpoint to create a test user for demonstration purposes:
-
-1. Log in as an admin user
-2. Navigate to: `http://localhost:5000/create-test-user`
-3. This will create a test user with the following credentials:
-   - Email: `test@bakkenbaeck.no`
-   - Name: `Test User`
-   - Admin: No
-   - Reviewer: No
-4. You will be redirected to the user management page
-
-Note: This endpoint is protected by the `@admin_required` decorator, so you must be logged in as an admin to use it.
-
-## Making Yourself an Admin
-
-If you need admin access, you can grant it to yourself using the Flask shell:
-
-```bash
-# Enter flask shell in Docker
-docker exec -it expense-app-web-1 flask shell
-
-# Then paste these commands:
-from app.models import User, db
-user = User.query.filter_by(email='your@email.com').first()
-user.is_admin = True
-db.session.commit()
-exit()
-```
-
-Just replace `your@email.com` with your email address. After running these commands, you'll have admin privileges in the application.
-
-## Deployment
-
-For production deployment:
-
-1. Update the `.env` file with production settings
-2. Set `FLASK_ENV=production`
-3. Configure a production WSGI server (Gunicorn, uWSGI)
-4. Set up a reverse proxy (Nginx, Apache)
-
-
-## Email Configuration
-
-When deploying to production, you'll need to update the email configuration to use your company's SMTP server. Follow these steps:
-
-### 1. Update Environment Variables
-
-In your production environment, set the following environment variables:
-
-```
-MAIL_SERVER=your-smtp-server.company.com
-MAIL_PORT=587  # Common ports are 587 (TLS) or 465 (SSL)
-MAIL_USE_TLS=True  # Use False if using SSL
-MAIL_USE_SSL=False  # Use True if using SSL instead of TLS
-MAIL_USERNAME=your-email@company.com
-MAIL_PASSWORD=your-email-password
-MAIL_DEFAULT_SENDER=your-email@company.com
-```
-
-### 2. Update Docker Compose (if using Docker)
-
-If you're using Docker in production, update your `docker-compose.yml` file:
-
-```yaml
-services:
-  web:
-    # ... other configuration ...
-    environment:
-      - MAIL_SERVER=your-smtp-server.company.com
-      - MAIL_PORT=587
-      - MAIL_USE_TLS=True
-      - MAIL_USE_SSL=False
-      - MAIL_USERNAME=your-email@company.com
-      - MAIL_PASSWORD=your-email-password
-      - MAIL_DEFAULT_SENDER=your-email@company.com
-```
-
-### 3. Common SMTP Configurations
-
-#### Gmail
-```
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=your-gmail@gmail.com
-MAIL_PASSWORD=your-app-password  # Use an App Password, not your regular password
-```
-
-#### Microsoft 365 / Office 365
-```
-MAIL_SERVER=smtp.office365.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=your-email@company.com
-MAIL_PASSWORD=your-password
-```
-
-#### Amazon SES
-```
-MAIL_SERVER=email-smtp.us-east-1.amazonaws.com  # Region may vary
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=YOUR_SES_ACCESS_KEY
-MAIL_PASSWORD=YOUR_SES_SECRET_KEY
-```
-
-### 4. Testing Email Configuration
-
-After updating your configuration, you can test if emails are being sent correctly by:
-
-1. Submitting a new receipt
-2. Checking if reviewers receive notification emails
-3. Approving/rejecting a receipt and checking if the user receives a status notification
-
-### 5. Troubleshooting
-
-If emails are not being sent:
-
-- Check your SMTP server settings
-- Verify that your email account credentials are correct
-- Ensure your email provider allows SMTP access (some providers require enabling this feature)
-- Check if your email provider requires using an app-specific password
-- Review application logs for any email-related errors
 
 ## Database Backup and Restore
 
