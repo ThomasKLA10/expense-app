@@ -565,7 +565,11 @@ Note: This endpoint is protected by the `@admin_required` decorator, so you must
 
 ## Making Yourself an Admin
 
-If you need admin access, you can grant it to yourself using the Flask shell:
+There are two ways to grant admin privileges to a user:
+
+### Method 1: Using the Flask Shell via Web Interface
+
+As mentioned earlier in the documentation:
 
 ```bash
 # Enter flask shell in Docker
@@ -579,7 +583,48 @@ db.session.commit()
 exit()
 ```
 
-Just replace `your@email.com` with your email address. After running these commands, you'll have admin privileges in the application.
+### Method 2: Using the Flask Shell via SSH (on Testwerk)
+
+If you've deployed to Testwerk and need to make yourself an admin, follow these steps:
+
+```bash
+# SSH into the server
+ssh expense-app@expense-app.testwerk.org
+
+# Navigate to the application directory
+cd /var/www/expense-app
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Enter the Flask shell
+flask shell
+
+# In the Flask shell, run these commands:
+from app.models import User, db
+user = User.query.filter_by(email='your@email.com').first()
+
+# Check if the user exists and make them an admin
+if user:
+    print(f"Found user: {user.email}")
+    user.is_admin = True
+    db.session.commit()
+    print(f"User {user.email} is now an admin")
+else:
+    print("User not found. Please check the email address.")
+
+# Verify the change
+updated_user = User.query.filter_by(email='your@email.com').first()
+print(f"Admin status: {updated_user.is_admin}")
+
+# Exit the shell
+exit()
+
+# Deactivate the virtual environment
+deactivate
+```
+
+Replace `your@email.com` with your actual email address. After running these commands, you'll have admin privileges in the application.
 
 ## Deployment
 
@@ -728,6 +773,139 @@ For a production deployment:
    ```
 
 ## Maintenance
+
+### Setting Up Automated Maintenance Tasks
+
+The application includes automated maintenance tasks for database backups and file management. These tasks are configured as cron jobs to run at scheduled intervals.
+
+#### Setting Up Cron Jobs
+
+To set up the automated maintenance tasks, follow these steps:
+
+1. **SSH into the server**
+   ```bash
+   ssh expense-app@expense-app.testwerk.org
+   ```
+
+2. **Navigate to the application directory**
+   ```bash
+   cd /var/www/expense-app
+   ```
+
+3. **Make the maintenance scripts executable**
+   ```bash
+   chmod +x scripts/file-management.sh
+   chmod +x scripts/db_backup.sh
+   ```
+
+4. **Create a crontab configuration**
+   ```bash
+   cat > /tmp/expense-app-crontab << 'EOF'
+   # Expense App scheduled tasks
+   # File management: Run every Wednesday at 2 AM
+   0 2 * * 3 /var/www/expense-app/scripts/file-management.sh
+
+   # Database backup: Run daily at 1 AM
+   0 1 * * * /var/www/expense-app/scripts/db_backup.sh
+   EOF
+   ```
+
+5. **Install the crontab**
+   ```bash
+   crontab /tmp/expense-app-crontab
+   ```
+
+6. **Verify the crontab was installed**
+   ```bash
+   crontab -l
+   ```
+
+#### Maintenance Schedule
+
+The automated maintenance tasks are scheduled as follows:
+
+- **Database Backup**: Runs daily at 1 AM
+  - Creates daily backups
+  - Creates weekly backups on Sundays
+  - Creates monthly backups on the 1st of each month
+  - Rotates old backups according to retention settings
+
+- **File Management**: Runs weekly on Wednesdays at 2 AM
+  - Archives processed receipts
+  - Organizes files by user ID
+  - Cleans up temporary files
+  - Maintains log files with rotation
+
+#### Maintenance Logs
+
+Logs for the maintenance tasks are stored in the following locations:
+
+- **Database Backup Logs**: `logs/db_backup_YYYY-MM-DD.log`
+- **File Management Logs**: `logs/file-management-YYYY-MM-DD.log`
+
+You can monitor these logs to ensure that the maintenance tasks are running correctly:
+
+```bash
+# View the latest database backup log
+ls -t logs/db_backup_*.log | head -1 | xargs cat
+
+# View the latest file management log
+ls -t logs/file-management-*.log | head -1 | xargs cat
+```
+
+### Database Backup and Restore
+
+#### Backup Retention Policy
+
+The database backup system maintains:
+- Daily backups for the last 30 days
+- Weekly backups for the last 12 weeks
+- Monthly backups for the last 24 months
+
+#### Manual Database Backup
+
+You can manually trigger a database backup by running:
+
+```bash
+/var/www/expense-app/scripts/db_backup.sh
+```
+
+#### Restoring from Backup
+
+To restore the database from a backup:
+
+1. **List available backups**
+   ```bash
+   /var/www/expense-app/scripts/db_restore.sh --list
+   ```
+
+2. **Restore from a specific backup file**
+   ```bash
+   /var/www/expense-app/scripts/db_restore.sh --file path/to/backup.sql.gz
+   ```
+
+   Or restore from the latest backup of a specific type:
+   ```bash
+   /var/www/expense-app/scripts/db_restore.sh --latest daily
+   ```
+
+   Or use interactive mode:
+   ```bash
+   /var/www/expense-app/scripts/db_restore.sh
+   ```
+
+### Manual File Management
+
+You can manually trigger the file management process by running:
+
+```bash
+/var/www/expense-app/scripts/file-management.sh
+```
+
+This will:
+- Archive processed receipts
+- Clean up temporary files
+- Generate a log file with details of the operation
 
 ## Data Protection (Datenschutz)
 
