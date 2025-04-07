@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.17 (Homebrew)
--- Dumped by pg_dump version 14.17 (Homebrew)
+-- Dumped from database version 13.20 (Debian 13.20-1.pgdg120+1)
+-- Dumped by pg_dump version 13.20 (Debian 13.20-1.pgdg120+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -21,7 +21,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: alembic_version; Type: TABLE; Schema: public; Owner: thomas
+-- Name: alembic_version; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.alembic_version (
@@ -29,36 +29,37 @@ CREATE TABLE public.alembic_version (
 );
 
 
-ALTER TABLE public.alembic_version OWNER TO thomas;
+ALTER TABLE public.alembic_version OWNER TO postgres;
 
 --
--- Name: receipt; Type: TABLE; Schema: public; Owner: thomas
+-- Name: receipt; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.receipt (
     id integer NOT NULL,
-    user_id integer,
+    user_id integer NOT NULL,
     amount double precision NOT NULL,
-    category character varying(50) NOT NULL,
-    date_submitted timestamp with time zone,
-    status character varying(20),
-    file_path_db character varying(200) NOT NULL,
+    currency character varying(3) NOT NULL,
+    category character varying(50),
     purpose character varying(200),
     travel_from character varying(100),
     travel_to character varying(100),
     departure_date date,
     return_date date,
-    archived boolean DEFAULT false NOT NULL,
-    currency character varying(3) NOT NULL,
+    file_path_db character varying(500),
+    date_submitted timestamp with time zone,
     updated_at timestamp with time zone,
-    office character varying(50) NOT NULL
+    status character varying(20),
+    archived boolean NOT NULL,
+    comment character varying(500),
+    reviewer_notes text
 );
 
 
-ALTER TABLE public.receipt OWNER TO thomas;
+ALTER TABLE public.receipt OWNER TO postgres;
 
 --
--- Name: receipt_id_seq; Type: SEQUENCE; Schema: public; Owner: thomas
+-- Name: receipt_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE public.receipt_id_seq
@@ -70,17 +71,17 @@ CREATE SEQUENCE public.receipt_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.receipt_id_seq OWNER TO thomas;
+ALTER TABLE public.receipt_id_seq OWNER TO postgres;
 
 --
--- Name: receipt_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: thomas
+-- Name: receipt_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.receipt_id_seq OWNED BY public.receipt.id;
 
 
 --
--- Name: user; Type: TABLE; Schema: public; Owner: thomas
+-- Name: user; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."user" (
@@ -88,14 +89,15 @@ CREATE TABLE public."user" (
     email character varying(120) NOT NULL,
     name character varying(120),
     is_admin boolean,
-    last_checked timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    is_reviewer boolean,
+    last_checked timestamp with time zone
 );
 
 
-ALTER TABLE public."user" OWNER TO thomas;
+ALTER TABLE public."user" OWNER TO postgres;
 
 --
--- Name: user_id_seq; Type: SEQUENCE; Schema: public; Owner: thomas
+-- Name: user_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE public.user_id_seq
@@ -107,31 +109,31 @@ CREATE SEQUENCE public.user_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.user_id_seq OWNER TO thomas;
+ALTER TABLE public.user_id_seq OWNER TO postgres;
 
 --
--- Name: user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: thomas
+-- Name: user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.user_id_seq OWNED BY public."user".id;
 
 
 --
--- Name: receipt id; Type: DEFAULT; Schema: public; Owner: thomas
+-- Name: receipt id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.receipt ALTER COLUMN id SET DEFAULT nextval('public.receipt_id_seq'::regclass);
 
 
 --
--- Name: user id; Type: DEFAULT; Schema: public; Owner: thomas
+-- Name: user id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."user" ALTER COLUMN id SET DEFAULT nextval('public.user_id_seq'::regclass);
 
 
 --
--- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: thomas
+-- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.alembic_version
@@ -139,7 +141,7 @@ ALTER TABLE ONLY public.alembic_version
 
 
 --
--- Name: receipt receipt_pkey; Type: CONSTRAINT; Schema: public; Owner: thomas
+-- Name: receipt receipt_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.receipt
@@ -147,7 +149,7 @@ ALTER TABLE ONLY public.receipt
 
 
 --
--- Name: user user_email_key; Type: CONSTRAINT; Schema: public; Owner: thomas
+-- Name: user user_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."user"
@@ -155,7 +157,7 @@ ALTER TABLE ONLY public."user"
 
 
 --
--- Name: user user_pkey; Type: CONSTRAINT; Schema: public; Owner: thomas
+-- Name: user user_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."user"
@@ -163,7 +165,7 @@ ALTER TABLE ONLY public."user"
 
 
 --
--- Name: receipt receipt_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: thomas
+-- Name: receipt receipt_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.receipt

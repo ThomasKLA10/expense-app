@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.17 (Homebrew)
--- Dumped by pg_dump version 14.17 (Homebrew)
+-- Dumped from database version 13.20 (Debian 13.20-1.pgdg120+1)
+-- Dumped by pg_dump version 13.20 (Debian 13.20-1.pgdg120+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -34,21 +34,22 @@ CREATE TABLE public.alembic_version (
 
 CREATE TABLE public.receipt (
     id integer NOT NULL,
-    user_id integer,
+    user_id integer NOT NULL,
     amount double precision NOT NULL,
-    category character varying(50) NOT NULL,
-    date_submitted timestamp with time zone,
-    status character varying(20),
-    file_path_db character varying(200) NOT NULL,
+    currency character varying(3) NOT NULL,
+    category character varying(50),
     purpose character varying(200),
     travel_from character varying(100),
     travel_to character varying(100),
     departure_date date,
     return_date date,
-    archived boolean DEFAULT false NOT NULL,
-    currency character varying(3) NOT NULL,
+    file_path_db character varying(500),
+    date_submitted timestamp with time zone,
     updated_at timestamp with time zone,
-    office character varying(50) NOT NULL
+    status character varying(20),
+    archived boolean NOT NULL,
+    comment character varying(500),
+    reviewer_notes text
 );
 
 --
@@ -78,7 +79,8 @@ CREATE TABLE public."user" (
     email character varying(120) NOT NULL,
     name character varying(120),
     is_admin boolean,
-    last_checked timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    is_reviewer boolean,
+    last_checked timestamp with time zone
 );
 
 --
