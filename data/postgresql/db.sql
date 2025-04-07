@@ -21,7 +21,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: alembic_version; Type: TABLE; Schema: public; Owner: thomas
+-- Name: alembic_version; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.alembic_version (
@@ -29,10 +29,10 @@ CREATE TABLE public.alembic_version (
 );
 
 
-ALTER TABLE public.alembic_version OWNER TO thomas;
+ALTER TABLE public.alembic_version OWNER TO postgres;
 
 --
--- Name: receipt; Type: TABLE; Schema: public; Owner: thomas
+-- Name: receipt; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.receipt (
@@ -55,10 +55,10 @@ CREATE TABLE public.receipt (
 );
 
 
-ALTER TABLE public.receipt OWNER TO thomas;
+ALTER TABLE public.receipt OWNER TO postgres;
 
 --
--- Name: receipt_id_seq; Type: SEQUENCE; Schema: public; Owner: thomas
+-- Name: receipt_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE public.receipt_id_seq
@@ -70,17 +70,17 @@ CREATE SEQUENCE public.receipt_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.receipt_id_seq OWNER TO thomas;
+ALTER TABLE public.receipt_id_seq OWNER TO postgres;
 
 --
--- Name: receipt_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: thomas
+-- Name: receipt_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.receipt_id_seq OWNED BY public.receipt.id;
 
 
 --
--- Name: user; Type: TABLE; Schema: public; Owner: thomas
+-- Name: user; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."user" (
@@ -92,10 +92,10 @@ CREATE TABLE public."user" (
 );
 
 
-ALTER TABLE public."user" OWNER TO thomas;
+ALTER TABLE public."user" OWNER TO postgres;
 
 --
--- Name: user_id_seq; Type: SEQUENCE; Schema: public; Owner: thomas
+-- Name: user_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE public.user_id_seq
@@ -107,31 +107,31 @@ CREATE SEQUENCE public.user_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.user_id_seq OWNER TO thomas;
+ALTER TABLE public.user_id_seq OWNER TO postgres;
 
 --
--- Name: user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: thomas
+-- Name: user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.user_id_seq OWNED BY public."user".id;
 
 
 --
--- Name: receipt id; Type: DEFAULT; Schema: public; Owner: thomas
+-- Name: receipt id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.receipt ALTER COLUMN id SET DEFAULT nextval('public.receipt_id_seq'::regclass);
 
 
 --
--- Name: user id; Type: DEFAULT; Schema: public; Owner: thomas
+-- Name: user id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."user" ALTER COLUMN id SET DEFAULT nextval('public.user_id_seq'::regclass);
 
 
 --
--- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: thomas
+-- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.alembic_version
@@ -139,7 +139,7 @@ ALTER TABLE ONLY public.alembic_version
 
 
 --
--- Name: receipt receipt_pkey; Type: CONSTRAINT; Schema: public; Owner: thomas
+-- Name: receipt receipt_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.receipt
@@ -147,7 +147,7 @@ ALTER TABLE ONLY public.receipt
 
 
 --
--- Name: user user_email_key; Type: CONSTRAINT; Schema: public; Owner: thomas
+-- Name: user user_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."user"
@@ -155,7 +155,7 @@ ALTER TABLE ONLY public."user"
 
 
 --
--- Name: user user_pkey; Type: CONSTRAINT; Schema: public; Owner: thomas
+-- Name: user user_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."user"
@@ -163,7 +163,7 @@ ALTER TABLE ONLY public."user"
 
 
 --
--- Name: receipt receipt_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: thomas
+-- Name: receipt receipt_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.receipt
