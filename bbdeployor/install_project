@@ -3,20 +3,22 @@ set -e
 
 echo "=== Installing BB Expense App ==="
 
-# Create nginx configuration
-cat > /etc/nginx/sites-available/expense-app.conf << 'EOF'
+# Configure nginx
+if [ -f /etc/nginx/sites-available/default ]; then
+  rm /etc/nginx/sites-available/default
+fi
+
+cat > /etc/nginx/sites-available/expense-app << EOF
 server {
     listen 80;
-    server_name localhost;
-
-    client_max_body_size 20M;
+    server_name expense-app.testwerk.org;
 
     location / {
         proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
     location /static {
@@ -24,65 +26,64 @@ server {
         expires 30d;
     }
 
-    location /temp {
-        alias /var/www/expense-app/temp;
-        expires 1d;
+    location /uploads {
+        alias /var/www/expense-app/app/uploads;
+        expires 30d;
     }
 }
 EOF
 
-# Enable the site
-ln -sf /etc/nginx/sites-available/expense-app.conf /etc/nginx/sites-enabled/
-nginx -t && systemctl reload nginx
+ln -sf /etc/nginx/sites-available/expense-app /etc/nginx/sites-enabled/
 
-# Create supervisor configuration for the Flask app
-cat > /etc/supervisor/conf.d/expense-app.conf << 'EOF'
-[program:expense-app]
-command=/var/www/expense-app/venv/bin/gunicorn -w 4 -b 127.0.0.1:5000 run:app
-directory=/var/www/expense-app
-user=root
-autostart=true
-autorestart=true
-stderr_logfile=/var/www/expense-app/logs/gunicorn.err.log
-stdout_logfile=/var/www/expense-app/logs/gunicorn.out.log
-environment=PYTHONPATH="/var/www/expense-app"
+# Test nginx config
+nginx -t
 
-[program:expense-app-scheduler]
-command=/var/www/expense-app/venv/bin/python -m flask scheduler
-directory=/var/www/expense-app
-user=root
-autostart=true
-autorestart=true
-stderr_logfile=/var/www/expense-app/logs/scheduler.err.log
-stdout_logfile=/var/www/expense-app/logs/scheduler.out.log
-environment=PYTHONPATH="/var/www/expense-app",FLASK_APP="run.py"
+# In Docker, we can't use systemd, so we'll handle services differently
+if [ -f /.dockerenv ]; then
+    echo "Running in Docker environment, starting services manually"
+    
+    # Restart nginx without systemd
+    nginx -s reload || nginx
+    
+    # Start the Flask application in the background
+    cd /var/www/expense-app
+    source venv/bin/activate
+    
+    # Create a simple startup script
+    cat > /var/www/expense-app/start_app.sh << EOF
+#!/bin/bash
+cd /var/www/expense-app
+source venv/bin/activate
+python run.py
+EOF
+    
+    chmod +x /var/www/expense-app/start_app.sh
+    
+    # We'll let the container startup handle running the app
+    echo "Application installed successfully. Use /var/www/expense-app/start_app.sh to start the app."
+else
+    # For non-Docker environments, use systemd
+    systemctl restart nginx
+    
+    # Create and enable systemd service
+    cat > /etc/systemd/system/expense-app.service << EOF
+[Unit]
+Description=BB Expense App
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/expense-app
+ExecStart=/var/www/expense-app/venv/bin/python run.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
-# Install gunicorn if not in requirements
-source venv/bin/activate
-pip install gunicorn
-
-# Set up cron jobs for file management and backups
-(crontab -l 2>/dev/null || echo "") | grep -v "file-management.sh\|db_backup.sh" > /tmp/crontab.tmp
-echo "0 2 * * 3 /var/www/expense-app/scripts/file-management.sh" >> /tmp/crontab.tmp
-echo "0 1 * * * /var/www/expense-app/scripts/db_backup.sh" >> /tmp/crontab.tmp
-crontab /tmp/crontab.tmp
-rm /tmp/crontab.tmp
-
-# Initialize the database with the provided schema
-if [ -f data/postgresql/db.sql ]; then
-    echo "Initializing database with provided schema..."
-    PGPASSWORD=postgres psql -h localhost -U postgres -d expense_app -f data/postgresql/db.sql
+    systemctl daemon-reload
+    systemctl enable expense-app
+    systemctl restart expense-app
 fi
 
-# Apply any migrations
-source venv/bin/activate
-flask db upgrade
-
-# Restart supervisor to apply changes
-supervisorctl reread
-supervisorctl update
-supervisorctl restart expense-app
-supervisorctl restart expense-app-scheduler
-
-echo "=== Installation completed ==="
+echo "expense-app.testwerk.org"
