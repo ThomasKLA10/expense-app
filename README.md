@@ -14,12 +14,14 @@ A comprehensive expense tracking and receipt management application built with F
 - [Development Tools](#development-tools)
   - [Making Yourself an Admin](#making-yourself-an-admin)
 - [API Documentation](#api-documentation)
+  - [Using the API Programmatically](#using-the-api-programmatically)
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Maintenance](#maintenance)
   - [Data Protection (Datenschutz)](#data-protection-datenschutz)
   - [File Management System](#file-management-system)
   - [Database Backup and Restore](#database-backup-and-restore)
+  - [Setting Up Automated Database Backups](#setting-up-automated-database-backups)
 
 ## Quick Start
 
@@ -257,6 +259,59 @@ The application provides a comprehensive API that allows programmatic access to 
 - `GET /api/receipts/{id}`: Get a specific receipt
 - `POST /api/receipts`: Create a new receipt
 - `POST /api/process_receipt`: Process a receipt with OCR
+
+### Using the API Programmatically
+
+The API can be accessed using standard HTTP clients. Here are some examples:
+
+#### Listing Receipts with curl
+
+```bash
+curl -X GET "http://localhost:5000/api/receipts" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+#### Creating a New Receipt with Python
+
+```python
+import requests
+import json
+
+url = "http://localhost:5000/api/receipts"
+headers = {
+    "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+    "Content-Type": "application/json"
+}
+data = {
+    "description": "Office supplies",
+    "amount": 42.50,
+    "currency": "EUR",
+    "category": "office"
+}
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+print(response.json())
+```
+
+#### Processing a Receipt with JavaScript
+
+```javascript
+const processReceipt = async (fileData) => {
+  const formData = new FormData();
+  formData.append('file', fileData);
+  
+  const response = await fetch('http://localhost:5000/api/process_receipt', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer YOUR_ACCESS_TOKEN'
+    },
+    body: formData
+  });
+  
+  return await response.json();
+};
+```
 
 ## Testing
 
@@ -633,159 +688,30 @@ The application includes scripts to automate file management:
    - Set up a cron job to run weekly
    - Automatically use the correct paths regardless of deployment location
 
-   **Deployment Note**: When deploying to production, simply run the `scripts/setup-cron.sh` script 
-   once on the server. It will automatically determine the correct paths and install the 
-   cron job. No manual crontab editing is required.
+   **Deployment Note**: When deploying to production, simply run the `
 
-### Production Deployment
+### Docker Container Names
 
-When deploying the file management system to production:
+When running commands that target specific containers, be aware of how Docker Compose names containers:
 
-1. **Transfer Scripts**: Copy both `scripts/file-management.sh` and `scripts/setup-cron.sh` to your production server
+1. **Default Naming Convention**: Docker Compose uses the format `{project-name}_{service-name}_{instance-number}`
 
-2. **Modify the Script**: Edit `scripts/file-management.sh` to use the appropriate command for your production environment:
+2. **Container Names in This Documentation**:
+   - Web application: `expense-app-web-1` (or `expense-app_web_1` depending on Docker Compose version)
+   - Database: `expense-app-db-1` (or `expense-app_db_1`)
+   - Mail server: `expense-app-mailhog-1` (or `expense-app_mailhog_1`)
+
+3. **Checking Actual Container Names**:
    ```bash
-   # Replace the Docker-specific command:
-   # docker-compose run --rm web flask manage-files >> "$LOG_FILE" 2>&1
-   
-   # With the direct Flask command for your production environment:
-   cd /path/to/your/application && flask manage-files >> "$LOG_FILE" 2>&1
-   ```
-
-3. **Set Permissions**: Make the scripts executable:
-   ```bash
-   chmod +x scripts/file-management.sh scripts/setup-cron.sh
-   ```
-
-4. **Run Setup Script**: Execute the setup script to install the cron job:
-   ```bash
-   ./scripts/setup-cron.sh
-   ```
-
-5. **Verify Cron Installation**: Check that the cron job was installed correctly:
-   ```bash
-   crontab -l
+   docker-compose ps
    ```
    
-   You should see a line like:
-   ```
-   0 2 * * 3 /path/to/your/scripts/file-management.sh
-   ```
-
-6. **Test Manual Execution**: Run the script manually once to verify it works:
+4. **Adjusting Commands**:
+   If your container names differ from those in the documentation, adjust commands accordingly:
    ```bash
-   ./scripts/file-management.sh
-   ```
+   # Example in documentation
+   docker exec -it expense-app-web-1 flask shell
    
-   Then check the logs directory for the generated log file.
-
-## Database Backup and Restore
-
-The BB Expense App includes a comprehensive database backup system to ensure your expense data is protected in both local Docker environments and BB Deployor hosting.
-
-### Automated Backups
-
-Backups are automatically performed according to the following schedule:
-
-- **Daily Backups**: Every day at 1 AM
-- **Weekly Backups**: Every Sunday
-- **Monthly Backups**: On the 1st of each month
-
-Backups are stored in the `data/db/backups` directory with the following structure:
-- `daily/`: Contains the last 30 daily backups
-- `weekly/`: Contains the last 12 weekly backups
-- `monthly/`: Contains the last 24 monthly backups
-
-### Why Three Types of Backups
-
-This tiered backup approach provides several advantages:
-
-1. **Different Retention Periods**: 
-   - Daily backups provide recent recovery points (30 days)
-   - Weekly backups provide medium-term recovery points (3 months)
-   - Monthly backups provide long-term recovery points (2 years)
-
-2. **Protection Against Different Failure Scenarios**:
-   - Daily backups protect against immediate data loss
-   - Weekly/monthly backups protect against issues discovered later
-
-3. **Storage Efficiency**: Provides long-term protection without excessive storage usage
-
-### Backup Storage Location
-
-- **Docker Environment**: Stored in `data/db/backups/` directory (persisted via Docker volume)
-- **BB Deployor Environment**: Stored in `/var/www/yourproject/data/db/backups/`
-
-For production, consider copying backups to external storage for additional protection.
-
-### Manual Backup
-
-You can manually trigger a backup at any time using the following command:
-
-```bash
-./scripts/db_backup.sh
-```
-
-### Restoring from Backup
-
-To restore the database from a backup:
-
-1. List available backups:
-   ```bash
-   ./scripts/db_restore.sh --list
+   # Adjust to your actual container name
+   docker exec -it your_actual_container_name flask shell
    ```
-
-2. Restore from a specific backup file:
-   ```bash
-   ./scripts/db_restore.sh --file data/db/backups/daily/expense_app_backup_2025-04-01.sql.gz
-   ```
-
-3. Restore the latest backup of a specific type:
-   ```bash
-   ./scripts/db_restore.sh --latest daily
-   ```
-
-4. Interactive restore (will prompt for backup selection):
-   ```bash
-   ./scripts/db_restore.sh
-   ```
-
-### BB Deployor Integration
-
-When deploying to BB Deployor, the backup system is automatically configured during container setup. To verify it's working:
-
-1. SSH into your Deployor container:
-   ```bash
-   ssh yourproject@testwerk.org
-   ```
-
-2. Navigate to your project directory:
-   ```bash
-   cd /var/www/yourproject
-   ```
-
-3. Check if backups are being created:
-   ```bash
-   ls -la data/db/backups/daily/
-   ```
-
-4. Review backup logs:
-   ```bash
-   cat logs/db_backup_$(date +%Y-%m-%d).log
-   ```
-
-### Production Deployment
-
-When deploying to production, ensure the backup system is properly configured:
-
-1. Make sure the scripts are executable:
-   ```bash
-   chmod +x scripts/db_backup.sh scripts/db_restore.sh
-   ```
-
-2. Set up the cron job to run the backups:
-   ```bash
-   ./scripts/setup-cron.sh
-   ```
-
-3. Consider setting up an external backup solution to copy the backup files to a remote location for additional protection.
