@@ -2,6 +2,22 @@
 
 A comprehensive expense tracking and receipt management application built with Flask.
 
+## Table of Contents
+- [Features](#features)
+- [Technical Stack](#technical-stack)
+- [Setup and Installation](#setup-and-installation)
+- [Project Structure](#project-structure)
+- [API Documentation](#api-documentation)
+- [Testing](#testing)
+- [Data Protection (Datenschutz)](#data-protection-datenschutz)
+- [File Management System](#file-management-system)
+- [Google OAuth Configuration](#google-oauth-configuration)
+- [Development Tools](#development-tools)
+- [Making Yourself an Admin](#making-yourself-an-admin)
+- [Deployment](#deployment)
+- [Email Configuration](#email-configuration)
+- [Database Backup and Restore](#database-backup-and-restore)
+
 ## Features
 
 - **User Authentication**: Secure login via Google OAuth
@@ -479,3 +495,114 @@ If emails are not being sent:
 - Ensure your email provider allows SMTP access (some providers require enabling this feature)
 - Check if your email provider requires using an app-specific password
 - Review application logs for any email-related errors
+
+## Database Backup and Restore
+
+The BB Expense App includes a comprehensive database backup system to ensure your expense data is protected in both local Docker environments and BB Deployor hosting.
+
+### Automated Backups
+
+Backups are automatically performed according to the following schedule:
+
+- **Daily Backups**: Every day at 1 AM
+- **Weekly Backups**: Every Sunday
+- **Monthly Backups**: On the 1st of each month
+
+Backups are stored in the `data/db/backups` directory with the following structure:
+- `daily/`: Contains the last 30 daily backups
+- `weekly/`: Contains the last 12 weekly backups
+- `monthly/`: Contains the last 24 monthly backups
+
+### Why Three Types of Backups
+
+This tiered backup approach provides several advantages:
+
+1. **Different Retention Periods**: 
+   - Daily backups provide recent recovery points (30 days)
+   - Weekly backups provide medium-term recovery points (3 months)
+   - Monthly backups provide long-term recovery points (2 years)
+
+2. **Protection Against Different Failure Scenarios**:
+   - Daily backups protect against immediate data loss
+   - Weekly/monthly backups protect against issues discovered later
+
+3. **Storage Efficiency**: Provides long-term protection without excessive storage usage
+
+### Backup Storage Location
+
+- **Docker Environment**: Stored in `data/db/backups/` directory (persisted via Docker volume)
+- **BB Deployor Environment**: Stored in `/var/www/yourproject/data/db/backups/`
+
+For production, consider copying backups to external storage for additional protection.
+
+### Manual Backup
+
+You can manually trigger a backup at any time using the following command:
+
+```bash
+./scripts/db_backup.sh
+```
+
+### Restoring from Backup
+
+To restore the database from a backup:
+
+1. List available backups:
+   ```bash
+   ./scripts/db_restore.sh --list
+   ```
+
+2. Restore from a specific backup file:
+   ```bash
+   ./scripts/db_restore.sh --file data/db/backups/daily/expense_app_backup_2025-04-01.sql.gz
+   ```
+
+3. Restore the latest backup of a specific type:
+   ```bash
+   ./scripts/db_restore.sh --latest daily
+   ```
+
+4. Interactive restore (will prompt for backup selection):
+   ```bash
+   ./scripts/db_restore.sh
+   ```
+
+### BB Deployor Integration
+
+When deploying to BB Deployor, the backup system is automatically configured during container setup. To verify it's working:
+
+1. SSH into your Deployor container:
+   ```bash
+   ssh yourproject@testwerk.org
+   ```
+
+2. Navigate to your project directory:
+   ```bash
+   cd /var/www/yourproject
+   ```
+
+3. Check if backups are being created:
+   ```bash
+   ls -la data/db/backups/daily/
+   ```
+
+4. Review backup logs:
+   ```bash
+   cat logs/db_backup_$(date +%Y-%m-%d).log
+   ```
+
+### Production Deployment
+
+When deploying to production, ensure the backup system is properly configured:
+
+1. Make sure the scripts are executable:
+   ```bash
+   chmod +x scripts/db_backup.sh scripts/db_restore.sh
+   ```
+
+2. Set up the cron job to run the backups:
+   ```bash
+   ./scripts/setup-cron.sh
+   ```
+
+3. Consider setting up an external backup solution to copy the backup files to a remote location for additional protection.
