@@ -3,6 +3,7 @@
 A comprehensive expense tracking and receipt management application built with Flask.
 
 ## Table of Contents
+- [Quick Start](#quick-start)
 - [Features](#features)
 - [Technical Stack](#technical-stack)
 - [Setup and Installation](#setup-and-installation)
@@ -17,6 +18,55 @@ A comprehensive expense tracking and receipt management application built with F
 - [Deployment](#deployment)
 - [Email Configuration](#email-configuration)
 - [Database Backup and Restore](#database-backup-and-restore)
+
+## Quick Start
+
+Get the BB Expense App running in minutes with Docker:
+
+### Prerequisites
+- Docker and Docker Compose
+- Google OAuth credentials (see [Google OAuth Configuration](#google-oauth-configuration))
+
+### Steps
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/ThomasKLA10/expense-app.git
+   cd expense-app
+   ```
+
+2. **Set up environment variables**
+   ```bash
+   cp config/.env.example .env
+   ```
+   Edit `.env` and add your Google OAuth credentials:
+   ```
+   GOOGLE_CLIENT_ID=your-client-id
+   GOOGLE_CLIENT_SECRET=your-client-secret
+   ```
+
+3. **Start the application**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Access the application**
+   Open http://localhost:5000 in your browser
+
+5. **Make yourself an admin** (optional)
+   ```bash
+   docker exec -it expense-app-web-1 flask shell
+   ```
+   Then run:
+   ```python
+   from app.models import User, db
+   user = User.query.filter_by(email='your@email.com').first()
+   user.is_admin = True
+   db.session.commit()
+   exit()
+   ```
+
+That's it! For more detailed setup instructions and configuration options, see the sections below.
 
 ## Features
 
@@ -338,35 +388,105 @@ When deploying the file management system to production:
 
 ## Google OAuth Configuration
 
-To enable Google authentication, you need to set up OAuth credentials:
+To enable Google authentication, you need to set up OAuth credentials in the Google Cloud Console:
+
+### 1. Create a Google Cloud Project
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Navigate to "APIs & Services" > "Credentials"
-4. Click "Create Credentials" and select "OAuth client ID"
-5. Set the application type to "Web application"
+2. Click on the project dropdown at the top of the page
+3. Click "New Project"
+4. Enter a project name (e.g., "BB Expense App")
+5. Click "Create"
+
+### 2. Enable the Google OAuth API
+
+1. Select your project from the dashboard
+2. Navigate to "APIs & Services" > "Library" from the left sidebar
+3. Search for "Google OAuth2 API" or "Google Identity"
+4. Click on the API and click "Enable"
+
+### 3. Configure the OAuth Consent Screen
+
+1. Go to "APIs & Services" > "OAuth consent screen"
+2. Select "External" as the user type (unless you have Google Workspace)
+3. Click "Create"
+4. Fill in the required information:
+   - App name: "BB Expense App"
+   - User support email: Your email address
+   - Developer contact information: Your email address
+5. Click "Save and Continue"
+6. Under "Scopes", add the following scopes:
+   - `email`
+   - `profile`
+   - `openid`
+7. Click "Save and Continue"
+8. Add test users if needed (your email and any testers)
+9. Click "Save and Continue"
+10. Review your settings and click "Back to Dashboard"
+
+### 4. Create OAuth Client ID
+
+1. Go to "APIs & Services" > "Credentials"
+2. Click "Create Credentials" and select "OAuth client ID"
+3. Set the application type to "Web application"
+4. Name: "BB Expense App Web Client"
+5. Add authorized JavaScript origins:
+   - For local development: `http://localhost:5000`
+   - For production: `https://your-domain.com`
 6. Add authorized redirect URIs:
    - For local development: `http://localhost:5000/auth/google/callback`
    - For production: `https://your-domain.com/auth/google/callback`
-7. Copy the Client ID and Client Secret
-8. Add these credentials to your `.env` file:
+7. Click "Create"
+8. Note your Client ID and Client Secret (you'll need these for your app)
+
+### 5. Configure Your Application
+
+1. Add the Client ID and Client Secret to your `.env` file:
    ```
    GOOGLE_CLIENT_ID=your-client-id
    GOOGLE_CLIENT_SECRET=your-client-secret
    ```
 
-### Restricting Access to Specific Domains
+2. If using Docker, update your `docker-compose.yml` file:
+   ```yaml
+   services:
+     web:
+       # ... other configuration ...
+       environment:
+         - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+         - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+   ```
 
-The application is configured to only allow users with email addresses from specific domains to log in. This is controlled by the `ALLOWED_EMAIL_DOMAINS` setting in `config/settings.py`.
+### 6. Restricting Access to Specific Domains
+
+The application is configured to only allow users with email addresses from specific domains to log in. This is controlled by the `ALLOWED_EMAIL_DOMAINS` setting.
 
 To modify the allowed domains:
 1. Edit the `ALLOWED_EMAIL_DOMAINS` variable in your `.env` file:
    ```
-   ALLOWED_EMAIL_DOMAINS=bakkenbaeck.no,yourdomain.com
+   ALLOWED_EMAIL_DOMAINS=bakkenbaeck.no
    ```
-2. Multiple domains can be specified by separating them with commas
+2. Multiple domains can be specified by separating them with commas if needed
 
-This ensures that only users with email addresses from approved domains can access the application.
+### 7. Moving to Production
+
+When moving to production:
+
+1. Update the authorized origins and redirect URIs in the Google Cloud Console
+2. If needed, publish your OAuth consent screen:
+   - Go to "OAuth consent screen"
+   - Click "Publish App" to move from testing to production
+   - Note: This may require verification if you're allowing access to users outside your organization
+
+### 8. Troubleshooting
+
+If you encounter authentication issues:
+
+- Verify that your redirect URIs exactly match what's configured in the Google Cloud Console
+- Check that your Client ID and Client Secret are correctly set in your environment
+- Ensure the OAuth API is enabled for your project
+- Verify that the user's email domain is in your `ALLOWED_EMAIL_DOMAINS` list
+- Check the application logs for specific error messages
 
 ## Development Tools
 
