@@ -21,18 +21,15 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: alembic_version; Type: TABLE; Schema: public; Owner: expense_app
+-- Name: alembic_version; Type: TABLE; Schema: public
 --
 
 CREATE TABLE public.alembic_version (
     version_num character varying(32) NOT NULL
 );
 
-
-ALTER TABLE public.alembic_version OWNER TO expense_app;
-
 --
--- Name: receipt; Type: TABLE; Schema: public; Owner: expense_app
+-- Name: receipt; Type: TABLE; Schema: public
 --
 
 CREATE TABLE public.receipt (
@@ -54,11 +51,8 @@ CREATE TABLE public.receipt (
     office character varying(50) NOT NULL
 );
 
-
-ALTER TABLE public.receipt OWNER TO expense_app;
-
 --
--- Name: receipt_id_seq; Type: SEQUENCE; Schema: public; Owner: expense_app
+-- Name: receipt_id_seq; Type: SEQUENCE; Schema: public
 --
 
 CREATE SEQUENCE public.receipt_id_seq
@@ -69,18 +63,14 @@ CREATE SEQUENCE public.receipt_id_seq
     NO MAXVALUE
     CACHE 1;
 
-
-ALTER TABLE public.receipt_id_seq OWNER TO expense_app;
-
 --
--- Name: receipt_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: expense_app
+-- Name: receipt_id_seq; Type: SEQUENCE OWNED BY; Schema: public
 --
 
 ALTER SEQUENCE public.receipt_id_seq OWNED BY public.receipt.id;
 
-
 --
--- Name: user; Type: TABLE; Schema: public; Owner: expense_app
+-- Name: user; Type: TABLE; Schema: public
 --
 
 CREATE TABLE public."user" (
@@ -91,11 +81,8 @@ CREATE TABLE public."user" (
     last_checked timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
-
-ALTER TABLE public."user" OWNER TO expense_app;
-
 --
--- Name: user_id_seq; Type: SEQUENCE; Schema: public; Owner: expense_app
+-- Name: user_id_seq; Type: SEQUENCE; Schema: public
 --
 
 CREATE SEQUENCE public.user_id_seq
@@ -106,69 +93,58 @@ CREATE SEQUENCE public.user_id_seq
     NO MAXVALUE
     CACHE 1;
 
-
-ALTER TABLE public.user_id_seq OWNER TO expense_app;
-
 --
--- Name: user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: expense_app
+-- Name: user_id_seq; Type: SEQUENCE OWNED BY; Schema: public
 --
 
 ALTER SEQUENCE public.user_id_seq OWNED BY public."user".id;
 
-
 --
--- Name: receipt id; Type: DEFAULT; Schema: public; Owner: expense_app
+-- Name: receipt id; Type: DEFAULT; Schema: public
 --
 
 ALTER TABLE ONLY public.receipt ALTER COLUMN id SET DEFAULT nextval('public.receipt_id_seq'::regclass);
 
-
 --
--- Name: user id; Type: DEFAULT; Schema: public; Owner: expense_app
+-- Name: user id; Type: DEFAULT; Schema: public
 --
 
 ALTER TABLE ONLY public."user" ALTER COLUMN id SET DEFAULT nextval('public.user_id_seq'::regclass);
 
-
 --
--- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public; Owner: expense_app
+-- Name: alembic_version alembic_version_pkc; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.alembic_version
     ADD CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num);
 
-
 --
--- Name: receipt receipt_pkey; Type: CONSTRAINT; Schema: public; Owner: expense_app
+-- Name: receipt receipt_pkey; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.receipt
     ADD CONSTRAINT receipt_pkey PRIMARY KEY (id);
 
-
 --
--- Name: user user_email_key; Type: CONSTRAINT; Schema: public; Owner: expense_app
+-- Name: user user_email_key; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public."user"
     ADD CONSTRAINT user_email_key UNIQUE (email);
 
-
 --
--- Name: user user_pkey; Type: CONSTRAINT; Schema: public; Owner: expense_app
+-- Name: user user_pkey; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public."user"
     ADD CONSTRAINT user_pkey PRIMARY KEY (id);
 
-
 --
--- Name: receipt receipt_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: expense_app
+-- Name: receipt receipt_user_id_fkey; Type: FK CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.receipt
     ADD CONSTRAINT receipt_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."user"(id);
-
 
 --
 -- PostgreSQL database dump complete
