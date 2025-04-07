@@ -1,0 +1,60 @@
+#!/bin/bash
+set -e
+
+echo "=== Updating BB Expense App ==="
+
+# Check if this is a secrets update
+if [[ "$1" == "secrets" ]]; then
+    echo "Updating secrets..."
+    # Extract secrets if they exist
+    if [ -f bbdeployor/secrets.zip ]; then
+        unzip -o bbdeployor/secrets.zip -d .
+        echo "Secrets updated successfully"
+    fi
+    exit 0
+fi
+
+# Pull latest changes from Git
+git pull
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Upgrade pip
+pip install --upgrade pip
+
+# Install or update dependencies
+pip install -r requirements.txt
+
+# Create necessary directories if they don't exist
+mkdir -p app/static/uploads
+mkdir -p app/static/archives
+mkdir -p temp
+mkdir -p logs
+mkdir -p data/db/backups/daily
+mkdir -p data/db/backups/weekly
+mkdir -p data/db/backups/monthly
+
+# Set permissions
+chmod -R 755 app/static/uploads
+chmod -R 755 app/static/archives
+chmod -R 755 temp
+chmod -R 755 logs
+
+# Make scripts executable
+chmod +x scripts/*.sh
+
+# Apply database migrations
+flask db upgrade
+
+# Restart the application
+supervisorctl restart expense-app
+supervisorctl restart expense-app-scheduler
+
+# Run a database backup after update
+if [ -f scripts/db_backup.sh ]; then
+    echo "Running database backup..."
+    ./scripts/db_backup.sh
+fi
+
+echo "=== Update completed ==="

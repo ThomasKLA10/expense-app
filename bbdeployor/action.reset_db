@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+echo "=== Resetting database for BB Expense App ==="
+
+# Create a backup before reset
+/var/www/expense-app/scripts/db_backup.sh
+
+# Drop and recreate the database
+PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS expense_app;"
+PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE expense_app;"
+
+# Initialize with schema
+if [ -f data/postgresql/db.sql ]; then
+    echo "Initializing database with provided schema..."
+    PGPASSWORD=postgres psql -h localhost -U postgres -d expense_app -f data/postgresql/db.sql
+else
+    echo "No schema file found. Using Flask-Migrate to create schema..."
+    source venv/bin/activate
+    flask db upgrade
+fi
+
+echo "=== Database reset completed ==="

@@ -1,0 +1,88 @@
+#!/bin/bash
+set -e
+
+echo "=== Installing BB Expense App ==="
+
+# Create nginx configuration
+cat > /etc/nginx/sites-available/expense-app.conf << 'EOF'
+server {
+    listen 80;
+    server_name localhost;
+
+    client_max_body_size 20M;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /static {
+        alias /var/www/expense-app/app/static;
+        expires 30d;
+    }
+
+    location /temp {
+        alias /var/www/expense-app/temp;
+        expires 1d;
+    }
+}
+EOF
+
+# Enable the site
+ln -sf /etc/nginx/sites-available/expense-app.conf /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+
+# Create supervisor configuration for the Flask app
+cat > /etc/supervisor/conf.d/expense-app.conf << 'EOF'
+[program:expense-app]
+command=/var/www/expense-app/venv/bin/gunicorn -w 4 -b 127.0.0.1:5000 run:app
+directory=/var/www/expense-app
+user=root
+autostart=true
+autorestart=true
+stderr_logfile=/var/www/expense-app/logs/gunicorn.err.log
+stdout_logfile=/var/www/expense-app/logs/gunicorn.out.log
+environment=PYTHONPATH="/var/www/expense-app"
+
+[program:expense-app-scheduler]
+command=/var/www/expense-app/venv/bin/python -m flask scheduler
+directory=/var/www/expense-app
+user=root
+autostart=true
+autorestart=true
+stderr_logfile=/var/www/expense-app/logs/scheduler.err.log
+stdout_logfile=/var/www/expense-app/logs/scheduler.out.log
+environment=PYTHONPATH="/var/www/expense-app",FLASK_APP="run.py"
+EOF
+
+# Install gunicorn if not in requirements
+source venv/bin/activate
+pip install gunicorn
+
+# Set up cron jobs for file management and backups
+(crontab -l 2>/dev/null || echo "") | grep -v "file-management.sh\|db_backup.sh" > /tmp/crontab.tmp
+echo "0 2 * * 3 /var/www/expense-app/scripts/file-management.sh" >> /tmp/crontab.tmp
+echo "0 1 * * * /var/www/expense-app/scripts/db_backup.sh" >> /tmp/crontab.tmp
+crontab /tmp/crontab.tmp
+rm /tmp/crontab.tmp
+
+# Initialize the database with the provided schema
+if [ -f data/postgresql/db.sql ]; then
+    echo "Initializing database with provided schema..."
+    PGPASSWORD=postgres psql -h localhost -U postgres -d expense_app -f data/postgresql/db.sql
+fi
+
+# Apply any migrations
+source venv/bin/activate
+flask db upgrade
+
+# Restart supervisor to apply changes
+supervisorctl reread
+supervisorctl update
+supervisorctl restart expense-app
+supervisorctl restart expense-app-scheduler
+
+echo "=== Installation completed ==="
