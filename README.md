@@ -583,13 +583,149 @@ Just replace `your@email.com` with your email address. After running these comma
 
 ## Deployment
 
-For production deployment:
+### Deploying to Testwerk
 
-1. Update the `.env` file with production settings
-2. Set `FLASK_ENV=production`
-3. Configure a production WSGI server (Gunicorn, uWSGI)
-4. Set up a reverse proxy (Nginx, Apache)
+The BB Expense App can be deployed to the Testwerk hosting platform using the following process:
 
+1. **Prepare for Deployment**
+   - Ensure your code is committed to the repository
+   - Verify that your database migrations are up to date
+   - Update your `.env.example` file with the correct structure (but not actual credentials)
+
+2. **Deploy Using BB Deployor**
+   ```bash
+   # Deploy using the BB Deployor system
+   bbdeploy expense-app@testwerk.org
+   ```
+
+3. **Post-Deployment Configuration**
+   After the initial deployment, you'll need to configure the environment variables:
+
+   ```bash
+   # SSH into the server
+   ssh expense-app@expense-app.testwerk.org
+
+   # Update the .env file with correct configuration
+   cat > /var/www/expense-app/.env << 'EOF'
+   SECRET_KEY=your-super-secret-key
+   DATABASE_URL=postgresql://expense-app:123secure@localhost/expense-app
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   MAIL_SERVER=smtp.gmail.com
+   MAIL_PORT=587
+   MAIL_USERNAME=your-app-notification-email@gmail.com
+   MAIL_PASSWORD=your-app-specific-password
+   MAIL_DEFAULT_SENDER=your-app-notification-email@gmail.com
+   BASE_URL=https://expense-app.testwerk.org
+   EOF
+
+   # Restart the application
+   pkill -f "python run.py"
+   nohup /var/www/expense-app/start_app.sh > /var/log/expense-app.log 2>&1 &
+   ```
+
+4. **Verify Deployment**
+   - Access the application at `https://expense-app.testwerk.org`
+   - Check the logs for any errors: `cat /var/log/expense-app.log`
+   - Verify that you can log in and access all features
+
+### Troubleshooting Common Deployment Issues
+
+#### 502 Bad Gateway Error
+If you encounter a 502 Bad Gateway error after deployment:
+
+1. **Check if the application is running**
+   ```bash
+   ps aux | grep python
+   ```
+
+2. **Verify database connection**
+   - Ensure the `DATABASE_URL` in `.env` is correct
+   - The format should be: `postgresql://username:password@localhost/database_name`
+   - For Testwerk deployments: `postgresql://expense-app:123secure@localhost/expense-app`
+
+3. **Check application logs**
+   ```bash
+   cat /var/log/expense-app.log
+   ```
+
+4. **Restart the application**
+   ```bash
+   pkill -f "python run.py"
+   nohup /var/www/expense-app/start_app.sh > /var/log/expense-app.log 2>&1 &
+   ```
+
+#### Database Connection Issues
+If the application can't connect to the database:
+
+1. **Verify database credentials**
+   - Check the `.env` file for correct database connection string
+   - Ensure the database user has the correct permissions
+
+2. **Test database connection**
+   ```bash
+   psql -U expense-app -d expense-app -c "SELECT 1;"
+   ```
+
+### Production Environment Configuration
+
+For a production deployment:
+
+1. **Set production environment variables**
+   ```
+   FLASK_ENV=production
+   SECRET_KEY=a-strong-random-key
+   ```
+
+2. **Configure HTTPS**
+   - Testwerk automatically configures HTTPS with Let's Encrypt
+   - Ensure your `BASE_URL` uses `https://` protocol
+
+3. **Set up Google OAuth**
+   - Add your production domain to the authorized domains in Google Cloud Console
+   - Update redirect URIs to include your production domain
+
+4. **Configure email notifications**
+   - Update SMTP settings for your production email provider
+   - Test email functionality after deployment
+
+### Monitoring and Maintenance
+
+1. **Check application status**
+   ```bash
+   ps aux | grep python
+   ```
+
+2. **View logs**
+   ```bash
+   tail -f /var/log/expense-app.log
+   ```
+
+3. **Restart the application**
+   ```bash
+   pkill -f "python run.py"
+   nohup /var/www/expense-app/start_app.sh > /var/log/expense-app.log 2>&1 &
+   ```
+
+4. **Update the application**
+   ```bash
+   # SSH into the server
+   ssh expense-app@expense-app.testwerk.org
+   
+   # Pull the latest changes
+   cd /var/www/expense-app
+   git pull
+   
+   # Install any new dependencies
+   pip install -r requirements.txt
+   
+   # Apply database migrations
+   flask db upgrade
+   
+   # Restart the application
+   pkill -f "python run.py"
+   nohup /var/www/expense-app/start_app.sh > /var/log/expense-app.log 2>&1 &
+   ```
 
 ## Maintenance
 
