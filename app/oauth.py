@@ -102,11 +102,12 @@ class GoogleOAuth:
                 users_name = userinfo_response.json()["name"]
                 
                 # Check if email is from allowed domain
-                allowed_domains = current_app.config.get('ALLOWED_EMAIL_DOMAINS', ['bakkenbaeck.no'])
-                email_domain = users_email.split('@')[-1]
-                if email_domain not in allowed_domains:
-                    flash('Only authorized email domains are allowed.', 'error')
-                    return None
+                allowed_domains = current_app.config.get('ALLOWED_EMAIL_DOMAINS', [])
+                if allowed_domains:  # Only check domains if any are specified
+                    email_domain = users_email.split('@')[-1]
+                    if email_domain not in allowed_domains:
+                        flash('Only authorized email domains are allowed.', 'error')
+                        return None
                 
                 # Create or update user
                 user = User.query.filter_by(email=users_email).first()

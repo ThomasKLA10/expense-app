@@ -40,7 +40,7 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'BB Receipt App <your-gmail@gmail.com>')
     
     # Add this to your Config class
-    ALLOWED_EMAIL_DOMAINS = os.environ.get('ALLOWED_EMAIL_DOMAINS', 'bakkenbaeck.no').split(',')
+    ALLOWED_EMAIL_DOMAINS = os.environ.get('ALLOWED_EMAIL_DOMAINS', '').split(',') if os.environ.get('ALLOWED_EMAIL_DOMAINS') else []
     
     @staticmethod
     def get_current_time():
